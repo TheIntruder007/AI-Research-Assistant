@@ -19,7 +19,8 @@
   - Removed reference-manager sync and citation-enrichment integrations, and the web frontend/HTTP layer (see DECISIONS.md D-007).
   - Extended output schema with `novelty_analysis`, `confidence_notes`, `research_interpretation` per the project's required output contract.
   - `service.py::run_discovery()` — the stable entry point, adapts pipeline output to `DiscoveryResult`.
-- Tests: 5 unit tests passing (`tests/shared/test_discovery_contract.py`, `tests/shared/test_llm_provider.py`, `tests/services/test_discovery_service.py`) — schema validation and adapter mapping logic. **Not yet tested**: an actual end-to-end run against a live model (blocked on the model pull finishing).
+- Tests: 9 unit tests passing (contract validation, adapter mapping, dedupe/rank pure-logic tests). **Not yet tested**: an actual end-to-end run against a live model (blocked on the model pull finishing).
+- `scripts/smoke_test_discovery.py` — manual end-to-end smoke test script, ready to run once the model finishes downloading.
 
 ## 🔄 Current working pipeline
 - Service 1 (Research Discovery) code complete and import-clean; not yet run end-to-end (needs the local model available).
@@ -29,7 +30,8 @@
 
 ## 📝 Latest commits
 - `chore: initialize project workspace and documentation`
-- (this session's Service 1 work not yet committed — see Next task)
+- `feat: integrate research discovery service`
+- `fix: remove leftover references to fields dropped from Paper model` (caught by new dedupe/rank unit tests)
 
 ## 📊 Review milestone status
 - Review 1 (~33%): not started — will be written once Service 1 is verified working end-to-end.
@@ -39,10 +41,9 @@
 - `gh` CLI unavailable/unauthenticated — GitHub repo creation deferred by user request.
 
 ## ➡️ Next technical task
-1. Check background task `b1utqory8` (or `ollama list`) — confirm `qwen3.5:9b` finished downloading. If missing/interrupted again, just re-run `ollama pull qwen3.5:9b`.
+1. Check background task `b1utqory8` (or `ollama list`) — confirm `qwen3.5:9b` finished downloading. If missing/interrupted again, just re-run `ollama pull qwen3.5:9b` (this has needed 2+ restarts already due to network + one session restart — keep retrying, it's a one-time setup cost).
 2. Run a smoke prompt (`ollama run qwen3.5:9b "reply with OK"`) to verify the model responds; record result in DECISIONS.md D-002.
-3. Run `service.run_discovery()` end-to-end with a small test research question (small `corpus_size`, e.g. 6) against the live model; fix any JSON-schema/parsing issues Ollama's structured output surfaces (Ollama's schema support may behave slightly differently from the original cloud providers — expect some iteration here).
-4. Add an integration test for Service 1 (`tests/services/test_discovery_pipeline_integration.py`) using a small controlled question.
-5. Commit this Service 1 work with message `feat: integrate research discovery service`.
-6. Update `PROJECT_NOTES.md`/`DECISIONS.md` if the live run reveals adaptation issues.
-7. Only after Service 1 is confirmed working in isolation: begin Repository 2 (Research Writing Service) study and adaptation.
+3. Run `python scripts/smoke_test_discovery.py "<a small test question>"` end-to-end; fix any JSON-schema/parsing issues Ollama's structured output surfaces (Ollama's schema support may behave slightly differently from the original cloud providers — expect some iteration here, especially around `additionalProperties: False` strictness and streaming delta shape).
+4. Add an integration test for Service 1 (`tests/services/test_discovery_pipeline_integration.py`) using a small controlled question — mark it to skip cleanly if Ollama isn't running.
+5. Update `PROJECT_NOTES.md`/`DECISIONS.md` if the live run reveals adaptation issues; commit fixes.
+6. Only after Service 1 is confirmed working end-to-end in isolation: write `docs/reviews/review_1.md` (Review 1 ~33% milestone — workspace + local AI + Service 1 done), then begin Repository 2 (Research Writing Service) study and adaptation.

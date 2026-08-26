@@ -44,6 +44,7 @@ class Paper:
             "link": self.link,
             "doi": self.doi,
             "source": self.source,
+            "abstract": self.abstract,
             "has_abstract": bool(self.abstract),
             "has_fulltext": bool(self.future_text),
             "role": self.role,

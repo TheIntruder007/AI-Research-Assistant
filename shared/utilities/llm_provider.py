@@ -32,11 +32,16 @@ class LLMProviderError(Exception):
 _CONTEXT_TIERS = (4096, 8192, 16384, 24576, 32768)
 
 
-def _context_window_for(max_tokens: int) -> int:
-    """Smallest context tier that comfortably fits max_tokens of output plus a
-    typical prompt. Tiered rather than exact so repeated calls at similar sizes
-    reuse the same loaded context instead of forcing a model reload each time."""
-    needed = max_tokens * 2  # room for the prompt alongside the output
+def _context_window_for(max_tokens: int, prompt_chars: int = 0) -> int:
+    """Smallest context tier that comfortably fits max_tokens of output plus the
+    actual prompt. Tiered rather than exact so repeated calls at similar sizes
+    reuse the same loaded context instead of forcing a model reload each time.
+
+    prompt_chars should be len(system) + len(user); ~4 chars/token is a safe
+    rough estimate. A caller with a large input (e.g. multi-document context)
+    must pass this — sizing from max_tokens alone underestimates badly and
+    causes slow context-window shifting during prefill (see DECISIONS.md D-009)."""
+    needed = max_tokens + max(prompt_chars // 4, max_tokens)
     for tier in _CONTEXT_TIERS:
         if tier >= needed:
             return tier
@@ -83,7 +88,7 @@ async def stream_json(*, system: str, user: str, schema: dict,
             # for small calls. Round up to the nearest power-of-two-ish tier so
             # most calls reuse an already-loaded context size instead of forcing
             # a reload every time num_ctx changes.
-            "num_ctx": _context_window_for(max_tokens),
+            "num_ctx": _context_window_for(max_tokens, len(system) + len(user)),
         },
         "stream": True,
     }

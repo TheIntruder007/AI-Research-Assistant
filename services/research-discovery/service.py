@@ -31,6 +31,7 @@ def _paper_metadata(p: dict) -> PaperMetadata:
         id=p["id"], title=p["title"], authors=[a for a in p["authors"] if a != "et al."],
         year=p["year"], venue=p["venue"], citations=p["citations"], doi=p.get("doi"),
         url=p.get("link"), source=p["source"], has_abstract=p["has_abstract"],
+        abstract=p.get("abstract"),
     )
 
 

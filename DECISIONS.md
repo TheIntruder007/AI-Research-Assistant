@@ -45,6 +45,17 @@ Every important technical decision is recorded here: what was decided, why, alte
 - **Alternatives considered:** Hardcoding keys — rejected outright.
 - **Impact:** Any service requiring an external API (paper search, DOI lookup) reads keys from environment variables only, and the pipeline stops with clear instructions if a required key is missing.
 
+## D-007 — Research Discovery Service adaptation approach
+- **Date:** 2026-08-26
+- **Decision:** The Research Discovery Service's core pipeline (query generation → multi-source search → dedupe → rank → full-text mining → gap/novelty analysis) is retained as an async-generator pipeline emitting structured progress events — this already matches the project's required progress-event architecture. Adapted:
+  - Swapped the cloud-provider LLM layer for `shared/utilities/llm_provider.py` (local Ollama only, no cloud fallback).
+  - Removed personal-library integrations (a reference-manager sync feature and a citation-context enrichment feature) — out of scope for the MVP, added complexity/failure surface, and required data this system doesn't have.
+  - Removed the bundled web frontend and HTTP server layer — this becomes an in-process importable service (`services/research-discovery/service.py`) called directly by the orchestrator, not a standalone web app.
+  - Extended the gap-analysis output schema with explicit `novelty_analysis` (summary, supporting gaps, confidence, caveats) and `confidence_notes` fields, and extended query generation to also produce a `research_interpretation` field — both required by the project's output contract but not present in the original schema.
+- **Reason:** Reuse-first per project rules; the four literature sources kept (Semantic Scholar, OpenAlex, PubMed, arXiv) all work with no API key, satisfying the "local AI + no external key" requirement for this stage.
+- **Alternatives considered:** Running it as a separate HTTP microservice — rejected for MVP simplicity; can be revisited if a future web frontend needs direct access to this stage in isolation.
+- **Impact:** `services/research-discovery/service.py::run_discovery()` is the stable entry point Service 2 and the orchestrator depend on; output conforms to `shared/contracts/discovery_contract.py::DiscoveryResult`.
+
 ## D-006 — GitHub repository setup deferred pending CLI auth
 - **Date:** 2026-08-26
 - **Decision:** GitHub CLI (`gh`) is now installed (v2.98.0) but not authenticated on this machine — `gh auth login` requires an interactive browser/token step only the user can complete. Repository creation and collaborator invite (Sadiq8064) will be attempted immediately once auth succeeds; not retried indefinitely.

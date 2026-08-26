@@ -18,26 +18,54 @@ def _slug(text: str, max_len: int = 60) -> str:
 
 
 def build_outline(discovery: DiscoveryResult) -> str:
-    """A Markdown heading outline covering the required output sections
-    (see PROJECT_NOTES.md), populated with gap titles so each gets its own
-    literature-review subsection. Exactly one root heading, as required by
-    the writing graph's outline parser."""
-    lines = [
+    """A Markdown heading outline covering the evidence-backed sections (see
+    PROJECT_NOTES.md). Exactly one root heading, as required by the writing
+    graph's outline parser.
+
+    Deliberately does NOT give each Discovery research gap its own
+    literature-review subsection (see DECISIONS.md D-011): each gap is
+    already a narrow, specific statement about a single missing angle, and
+    turning it into its own evidence-required leaf tag causes the writing
+    graph's per-paper tagging step to (correctly, per its own no-invented-
+    evidence rule) exclude almost the entire corpus from every subsection —
+    verified on a real 6-paper run where this produced only 2 of 13
+    sections. A single flat Literature Review section lets papers'
+    abstract-level evidence roll up naturally instead of being sliced into
+    slots most of the corpus can't satisfy. The gaps themselves are
+    Service 1's own already-synthesized output, not something Service 2
+    needs to re-derive from literature evidence — see
+    render_research_gap_section() below, which renders them directly."""
+    return "\n".join([
         f"# {discovery.research_request.research_question}",
         "## Introduction",
-        "### Problem Statement",
         "## Literature Review",
-    ]
-    for gap in discovery.research_gaps:
-        lines.append(f"### {gap.title}")
-    lines += [
-        "## Research Gap",
-        "## Proposed Novelty and Contribution",
-        "## Methodology",
-        "## Discussion",
         "## Limitations",
         "## Conclusion",
-    ]
+    ])
+
+
+def render_research_gap_section(discovery: DiscoveryResult) -> str:
+    """Render Service 1's research-gap and novelty analysis directly as
+    Markdown, rather than asking the writing graph's strict evidence-only
+    leaf writer to "find evidence" for gaps and proposed future work that,
+    by definition, no existing paper in the corpus documents (see
+    DECISIONS.md D-011). Spliced into the assembled draft by service.py."""
+    lines = ["## Research Gap", ""]
+    for gap in discovery.research_gaps:
+        lines.append(f"### {gap.title}")
+        lines.append("")
+        lines.append(gap.description)
+        lines.append("")
+        if gap.evidence:
+            lines.append(f"*Evidence:* {gap.evidence}")
+            lines.append("")
+    lines.append("## Proposed Novelty and Contribution")
+    lines.append("")
+    lines.append(discovery.novelty_analysis.novelty_summary)
+    lines.append("")
+    if discovery.novelty_analysis.caveats:
+        lines.append(f"*Caveats:* {discovery.novelty_analysis.caveats}")
+        lines.append("")
     return "\n".join(lines)
 
 

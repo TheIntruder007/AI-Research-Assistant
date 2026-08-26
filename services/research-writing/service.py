@@ -28,7 +28,9 @@ from writing.adapters.ollama_model import create_ollama_model  # noqa: E402
 from writing.config import ReviewConfig  # noqa: E402
 from writing.graph import run_review_async  # noqa: E402
 from writing.schemas import ReviewInput  # noqa: E402
-from writing_prep import build_outline, write_literature_files  # noqa: E402
+from writing_prep import (  # noqa: E402
+    build_outline, render_research_gap_section, write_literature_files,
+)
 
 DEFAULT_OUTPUT_ROOT = Path(__file__).resolve().parents[2] / "outputs" / ".writing_runs"
 
@@ -105,6 +107,23 @@ async def run_writing(request: WritingRequest,
     draft_text = ""
     if result.final_review_path:
         draft_text = Path(result.final_review_path).read_text(encoding="utf-8")
+
+    # The outline (writing_prep.build_outline) deliberately omits a
+    # per-gap literature-review structure — see DECISIONS.md D-011 — so the
+    # Research Gap / Proposed Novelty content is rendered directly from
+    # Service 1's own synthesis and spliced in here rather than being
+    # written (and evidence-gated) by the writing graph itself.
+    gap_section = render_research_gap_section(discovery)
+    insertion_marker = "\n## Limitations"
+    reference_marker = "\n## References"
+    if insertion_marker in draft_text:
+        idx = draft_text.index(insertion_marker)
+    elif reference_marker in draft_text:
+        idx = draft_text.index(reference_marker)
+    else:
+        idx = len(draft_text)
+    draft_text = draft_text[:idx] + "\n" + gap_section + "\n" + draft_text[idx:]
+
     draft_text = DISCLAIMER_BANNER + draft_text
 
     citation_mapping: dict[str, CitationEntry] = {}

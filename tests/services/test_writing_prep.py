@@ -8,7 +8,7 @@ sys.path.insert(0, str(ROOT / "services" / "research-writing"))
 from shared.contracts.discovery_contract import (
     DiscoveryRequest, DiscoveryResult, PaperMetadata, ResearchGap, NoveltyAssessment,
 )
-from writing_prep import build_outline, write_literature_files
+from writing_prep import build_outline, render_research_gap_section, write_literature_files
 
 
 def _sample_discovery() -> DiscoveryResult:
@@ -35,13 +35,28 @@ def _sample_discovery() -> DiscoveryResult:
     )
 
 
-def test_build_outline_includes_gap_titles_and_required_sections():
+def test_build_outline_has_required_sections_and_no_per_gap_subsections():
     outline = build_outline(_sample_discovery())
     lines = outline.splitlines()
     assert sum(1 for line in lines if line.startswith("# ")) == 1  # exactly one root heading
     assert "## Introduction" in outline
-    assert "### Gap About Something" in outline
+    assert "## Literature Review" in outline
+    assert "## Limitations" in outline
+    assert "## Conclusion" in outline
+    # Gap titles must NOT become their own evidence-required leaf tags — see
+    # DECISIONS.md D-011 (a real 6-paper run showed this excludes almost the
+    # whole corpus from every subsection).
+    assert "Gap About Something" not in outline
     assert "References" not in outline  # added separately by the writer, not the outline
+
+
+def test_render_research_gap_section_includes_gap_and_novelty_content():
+    section = render_research_gap_section(_sample_discovery())
+    assert "## Research Gap" in section
+    assert "### Gap About Something" in section
+    assert "desc" in section
+    assert "## Proposed Novelty and Contribution" in section
+    assert "summary" in section
 
 
 def test_write_literature_files_skips_papers_without_abstract(tmp_path):

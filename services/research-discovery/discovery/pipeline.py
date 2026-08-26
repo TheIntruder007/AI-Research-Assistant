@@ -18,6 +18,7 @@ from .sources import SOURCES, openalex
 FULLTEXT_MAX_ATTEMPTS = 40   # papers we try to fetch full text for
 FULLTEXT_CONCURRENCY = 8
 VERIFY_RESULTS_PER_CANDIDATE = 8
+MAX_CANDIDATES_FOR_ANALYSIS = 5  # caps final-synthesis output size; see D-009
 
 
 def _merge(existing: Paper, incoming: Paper) -> None:
@@ -240,7 +241,7 @@ async def run_pipeline(question: str, source_keys: list[str],
     verification_papers: list[Paper] = []
     if fulltext_enabled:
         yield {"type": "status", "stage": "fulltext", "state": "running",
-               "message": "Retrieving full texts (Zotero library + open access)…"}
+               "message": "Retrieving full texts (open access)…"}
         async for event in _collect_fulltext(corpus):
             yield {"type": "status", "stage": "fulltext", "state": "running",
                    "message": f"Retrieving full texts… {event['ok']} of {event['done']} "
@@ -258,6 +259,12 @@ async def run_pipeline(question: str, source_keys: list[str],
                    "message": "Extracting author-flagged future-research statements…"}
             try:
                 candidates, mine_warning = await mine_future_research(with_text, fast_model)
+                # Every candidate gets a full entry in the final gap-analysis
+                # JSON (question/status/verdict/evidence/recommendation), so an
+                # uncapped candidate count scales the final synthesis call's
+                # output size directly. Mining already orders candidates most-
+                # to-least substantive, so keep the strongest ones.
+                candidates = candidates[:MAX_CANDIDATES_FOR_ANALYSIS]
             except PipelineError as e:
                 # Mining is best-effort. A rate-limit/connection error to Claude here
                 # must not discard the search/scite/full-text work already done — fall

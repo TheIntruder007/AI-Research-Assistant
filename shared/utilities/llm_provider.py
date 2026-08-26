@@ -29,6 +29,20 @@ class LLMProviderError(Exception):
     """A user-facing error from the local model layer."""
 
 
+_CONTEXT_TIERS = (4096, 8192, 16384, 24576, 32768)
+
+
+def _context_window_for(max_tokens: int) -> int:
+    """Smallest context tier that comfortably fits max_tokens of output plus a
+    typical prompt. Tiered rather than exact so repeated calls at similar sizes
+    reuse the same loaded context instead of forcing a model reload each time."""
+    needed = max_tokens * 2  # room for the prompt alongside the output
+    for tier in _CONTEXT_TIERS:
+        if tier >= needed:
+            return tier
+    return _CONTEXT_TIERS[-1]
+
+
 @dataclass
 class Completion:
     text: str = ""
@@ -40,16 +54,37 @@ class Completion:
 async def stream_json(*, system: str, user: str, schema: dict,
                       model: str | None = None,
                       max_tokens: int = 8000,
-                      temperature: float = 0.3) -> AsyncIterator[dict]:
+                      temperature: float = 0.3,
+                      think: bool = True) -> AsyncIterator[dict]:
     """Yield {"type": "delta", "text": str} as output streams, then a single
-    {"type": "done", "completion": Completion}. Raises LLMProviderError on failure."""
+    {"type": "done", "completion": Completion}. Raises LLMProviderError on failure.
+
+    think: whether the model may reason before answering. Reasoning tokens count
+    against max_tokens, so a simple/deterministic task should pass think=False —
+    otherwise a tight max_tokens budget can be exhausted by reasoning before any
+    actual JSON content is produced, silently yielding an empty (refusal-looking)
+    completion."""
     model = model or DEFAULT_MODEL
     payload = {
         "model": model,
         "messages": [{"role": "system", "content": system},
                      {"role": "user", "content": user}],
         "format": schema,
-        "options": {"temperature": temperature, "num_predict": max_tokens},
+        "think": think,
+        "options": {
+            "temperature": temperature,
+            "num_predict": max_tokens,
+            # Ollama's server-side default context window (commonly 4096) is far
+            # smaller than this model's 256K support and silently truncates
+            # generation once prompt+output exceed it, regardless of num_predict.
+            # Scale with max_tokens instead of a large fixed value: on an 8GB GPU,
+            # a bigger context reserves proportionally more VRAM for KV cache,
+            # and pushing past what fits forces slow CPU-offloaded inference even
+            # for small calls. Round up to the nearest power-of-two-ish tier so
+            # most calls reuse an already-loaded context size instead of forcing
+            # a reload every time num_ctx changes.
+            "num_ctx": _context_window_for(max_tokens),
+        },
         "stream": True,
     }
     comp = Completion()
@@ -92,12 +127,13 @@ async def stream_json(*, system: str, user: str, schema: dict,
 async def complete_json(*, system: str, user: str, schema: dict,
                         model: str | None = None,
                         max_tokens: int = 8000,
-                        temperature: float = 0.3) -> Completion:
+                        temperature: float = 0.3,
+                        think: bool = True) -> Completion:
     """A structured-JSON completion, non-streaming from the caller's point of view."""
     comp = Completion()
     async for event in stream_json(system=system, user=user, schema=schema,
                                    model=model, max_tokens=max_tokens,
-                                   temperature=temperature):
+                                   temperature=temperature, think=think):
         if event["type"] == "done":
             comp = event["completion"]
     return comp

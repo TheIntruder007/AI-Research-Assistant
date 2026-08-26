@@ -76,7 +76,8 @@ async def generate_queries(question: str, model_name: str | None = None) -> dict
         user=f"Research question: {question}",
         schema=QUERY_SCHEMA,
         model=model_name or economy_model(),
-        max_tokens=1000,
+        max_tokens=1500,
+        think=False,
     )
     if comp.stop == "refusal":
         raise PipelineError("The model declined to generate search queries. Try rephrasing the question.")
@@ -177,7 +178,8 @@ async def mine_future_research(papers: list[Paper],
         user=user_message,
         schema=MINE_SCHEMA,
         model=m,
-        max_tokens=12000,
+        max_tokens=6000,
+        think=False,
     )
 
     # Mining is best-effort — the main analysis still runs — but say so honestly.
@@ -225,7 +227,9 @@ REPORT_SCHEMA = {
         },
         "themes": {
             "type": "array",
-            "description": "The 3-6 major research themes/clusters in the corpus.",
+            "description": "The 2-4 major research themes/clusters in the corpus. "
+                           "Fewer, well-supported themes are better than padding "
+                           "this list for a small corpus.",
             "items": {
                 "type": "object",
                 "properties": {
@@ -239,7 +243,9 @@ REPORT_SCHEMA = {
         },
         "gaps": {
             "type": "array",
-            "description": "4-8 distinct, well-evidenced research gaps.",
+            "description": "2-4 distinct, well-evidenced research gaps. Fewer,"
+                           " well-evidenced gaps are better than padding this"
+                           " list for a small corpus.",
             "items": {
                 "type": "object",
                 "properties": {
@@ -432,7 +438,8 @@ async def analyze_gaps(question: str, papers: list[Paper],
     last_reported = 0
     comp = None
     async for event in llm.stream_json(system=ANALYSIS_SYSTEM, user=user_message,
-                                       schema=REPORT_SCHEMA, model=m, max_tokens=32000):
+                                       schema=REPORT_SCHEMA, model=m, max_tokens=8000,
+                                       think=False):
         if event["type"] == "delta":
             chars_seen += len(event["text"])
             if chars_seen - last_reported >= 2000:
@@ -469,5 +476,5 @@ async def analyze_gaps(question: str, papers: list[Paper],
         flagged["quotes"] = candidates[i].get("quotes", []) if i < len(candidates) else []
 
     yield {"type": "report", "report": report,
-           "usage": {"input_tokens": comp.input_tokens,
-                     "output_tokens": comp.output_tokens}}
+           "usage": {"input_tokens": comp.prompt_tokens,
+                     "output_tokens": comp.completion_tokens}}

@@ -45,6 +45,13 @@ Every important technical decision is recorded here: what was decided, why, alte
 - **Alternatives considered:** Hardcoding keys — rejected outright.
 - **Impact:** Any service requiring an external API (paper search, DOI lookup) reads keys from environment variables only, and the pipeline stops with clear instructions if a required key is missing.
 
+## D-008 — Ollama model storage moved to D: drive
+- **Date:** 2026-08-27
+- **Decision:** Set `OLLAMA_MODELS=D:\ollama_models` (persisted as a Windows user environment variable) instead of the default `C:\Users\<user>\.ollama\models`.
+- **Reason:** The `qwen3.5:9b` pull repeatedly failed/stalled over many hours. Initial diagnosis suspected network throttling by the Killer Wi-Fi adapter's traffic-shaping software (confirmed as a contributing factor — `curl` to the same registry URL was consistently faster than `ollama.exe`'s own download). However, the actual failure was a `curl exit code 23` (disk write failure): the C: drive was completely full (0 bytes free at the time), which silently truncated every download attempt regardless of network speed. This was the root cause; the network throttling only made the symptom slower to diagnose.
+- **Alternatives considered:** Freeing up space on C: instead — rejected as fragile; C: was at 98% capacity independent of this project, so any future model pull would risk hitting the same wall. D: has 52GB free, comfortably enough for this and future models.
+- **Impact:** The Ollama tray watchdog (`ollama app.exe`, which auto-relaunches `ollama.exe serve` on kill) had to be stopped so a manually-launched server with the correct `OLLAMA_MODELS` env var would stick. `shared/utilities/llm_provider.py` is unaffected (it only needs `OLLAMA_HOST`, not the model storage path). Anyone resuming this project on this machine should launch Ollama's server manually with `OLLAMA_MODELS=D:\ollama_models` if the tray app was disabled, or re-enable the tray app after confirming it picks up the persisted env var on next login.
+
 ## D-007 — Research Discovery Service adaptation approach
 - **Date:** 2026-08-26
 - **Decision:** The Research Discovery Service's core pipeline (query generation → multi-source search → dedupe → rank → full-text mining → gap/novelty analysis) is retained as an async-generator pipeline emitting structured progress events — this already matches the project's required progress-event architecture. Adapted:

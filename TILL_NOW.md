@@ -35,11 +35,11 @@
 - Review 1 (~33%): not started — will be written once Service 1 is verified working end-to-end.
 
 ## ⚠️ Known problems
-- `qwen3.5:9b` download has been slow and repeatedly restarting mid-transfer (network instability) — verification blocked until it completes.
+- `qwen3.5:9b` download has been slow and repeatedly restarting mid-transfer (network instability), and the working session itself restarted once mid-download, killing the in-progress pull — `ollama list` was empty on resume. Restarted again as background task `b1utqory8`. If a session restarts again before this finishes, just re-run `ollama pull qwen3.5:9b` (resumable) and check `ollama list`.
 - `gh` CLI unavailable/unauthenticated — GitHub repo creation deferred by user request.
 
 ## ➡️ Next technical task
-1. Check background task `bb6xoi7wt` (or `ollama list`) — confirm `qwen3.5:9b` finished downloading.
+1. Check background task `b1utqory8` (or `ollama list`) — confirm `qwen3.5:9b` finished downloading. If missing/interrupted again, just re-run `ollama pull qwen3.5:9b`.
 2. Run a smoke prompt (`ollama run qwen3.5:9b "reply with OK"`) to verify the model responds; record result in DECISIONS.md D-002.
 3. Run `service.run_discovery()` end-to-end with a small test research question (small `corpus_size`, e.g. 6) against the live model; fix any JSON-schema/parsing issues Ollama's structured output surfaces (Ollama's schema support may behave slightly differently from the original cloud providers — expect some iteration here).
 4. Add an integration test for Service 1 (`tests/services/test_discovery_pipeline_integration.py`) using a small controlled question.

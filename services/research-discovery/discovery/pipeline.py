@@ -36,10 +36,6 @@ def _merge(existing: Paper, incoming: Paper) -> None:
         existing.pdf_url = incoming.pdf_url
     if not existing.pmcid and incoming.pmcid:
         existing.pmcid = incoming.pmcid
-    if not existing.local_pdf and incoming.local_pdf:
-        existing.local_pdf = incoming.local_pdf
-    if not existing.local_ft_cache and incoming.local_ft_cache:
-        existing.local_ft_cache = incoming.local_ft_cache
     if not existing.year and incoming.year:
         existing.year = incoming.year
     if len(incoming.authors) > len(existing.authors):

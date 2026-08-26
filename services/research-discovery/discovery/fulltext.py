@@ -207,45 +207,14 @@ async def _try_europe_pmc(http: httpx.AsyncClient, pmcid: str | None, doi: str |
         return None
 
 
-# ------------------------------------------------------- local (Zotero) route
-
-def _read_local_sync(paper) -> str | None:
-    """Read the user's own copy: Zotero's extracted-text cache, else the PDF.
-
-    Size-capped like the download routes — MAX_PDF_BYTES only bounded network
-    fetches, so an oversized local PDF / ft-cache could otherwise be read whole."""
-    text = ""
-    if paper.local_ft_cache and os.path.exists(paper.local_ft_cache):
-        try:
-            if os.path.getsize(paper.local_ft_cache) <= MAX_LOCAL_TEXT_BYTES:
-                with open(paper.local_ft_cache, encoding="utf-8", errors="ignore") as f:
-                    text = f.read()
-        except OSError:
-            text = ""
-    if len(text) < 2000 and paper.local_pdf and os.path.exists(paper.local_pdf):
-        try:
-            if os.path.getsize(paper.local_pdf) <= MAX_PDF_BYTES:
-                with open(paper.local_pdf, "rb") as f:
-                    text = _extract_pdf_text(f.read())
-        except OSError:
-            pass
-    return _sections_from_pdf_text(text) if text else None
-
-
 # ------------------------------------------------------------------ public API
 
 def is_candidate(paper) -> bool:
     """Can we plausibly get full text for this paper?"""
-    return bool(paper.local_pdf or paper.local_ft_cache
-                or paper.pmcid or paper.pdf_url or paper.doi)
+    return bool(paper.pmcid or paper.pdf_url or paper.doi)
 
 
 async def _fetch(http: httpx.AsyncClient, paper) -> str | None:
-    # The user's own library copy first — it also covers paywalled papers.
-    if paper.local_pdf or paper.local_ft_cache:
-        text = await asyncio.to_thread(_read_local_sync, paper)
-        if text:
-            return text
     text = await _try_europe_pmc(http, paper.pmcid, paper.doi)
     if not text and paper.pdf_url:
         text = await _try_pdf(http, paper.pdf_url)

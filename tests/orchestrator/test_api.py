@@ -1,6 +1,7 @@
 """Fast unit tests for the FastAPI backend, with the pipeline faked out."""
 
 import sys
+import time
 from pathlib import Path
 
 import pytest
@@ -67,13 +68,13 @@ def _fake_pipeline_result() -> PipelineResult:
     )
 
 
-async def _fake_run_pipeline_success(request, output_root=None):
-    yield {"type": "progress", "message": "working"}
+async def _fake_run_pipeline_success(request, output_root=None, run_id=None):
+    yield {"type": "progress", "run_id": run_id, "message": "working"}
     yield {"type": "result", "result": _fake_pipeline_result()}
 
 
-async def _fake_run_pipeline_failure(request, output_root=None):
-    yield {"type": "progress", "message": "working"}
+async def _fake_run_pipeline_failure(request, output_root=None, run_id=None):
+    yield {"type": "progress", "run_id": run_id, "message": "working"}
     raise PipelineError("Research Discovery Service produced no result.")
 
 
@@ -108,3 +109,64 @@ def test_research_endpoint_returns_502_on_pipeline_error(client, monkeypatch):
     monkeypatch.setattr(orchestrator_api, "run_pipeline", _fake_run_pipeline_failure)
     response = client.post("/research", json={"research_question": "What is X?"})
     assert response.status_code == 502
+
+
+def _wait_for_status(client, run_id, target_statuses, timeout=5.0):
+    deadline = time.monotonic() + timeout
+    body = None
+    while time.monotonic() < deadline:
+        response = client.get(f"/research/runs/{run_id}")
+        body = response.json()
+        if body["status"] in target_statuses:
+            return body
+        time.sleep(0.02)
+    raise AssertionError(f"Run {run_id} never reached {target_statuses}, last saw {body}")
+
+
+def test_start_research_run_returns_run_id_immediately(client, monkeypatch):
+    monkeypatch.setattr(orchestrator_api, "run_pipeline", _fake_run_pipeline_success)
+    response = client.post("/research/runs", json={"research_question": "What is X?"})
+    assert response.status_code == 202
+    run_id = response.json()["run_id"]
+    assert run_id
+
+    body = _wait_for_status(client, run_id, {"completed", "failed"})
+    assert body["status"] == "completed"
+    assert body["result"]["run_id"] == "run1"
+    assert body["error"] is None
+
+
+def test_start_research_run_marks_failed_on_pipeline_error(client, monkeypatch):
+    monkeypatch.setattr(orchestrator_api, "run_pipeline", _fake_run_pipeline_failure)
+    response = client.post("/research/runs", json={"research_question": "What is X?"})
+    run_id = response.json()["run_id"]
+
+    body = _wait_for_status(client, run_id, {"completed", "failed"})
+    assert body["status"] == "failed"
+    assert body["result"] is None
+    assert "produced no result" in body["error"]
+
+
+def test_get_research_run_returns_404_for_unknown_run_id(client):
+    response = client.get("/research/runs/does-not-exist")
+    assert response.status_code == 404
+
+
+def test_research_run_events_stream_returns_progress_then_end(client, monkeypatch):
+    monkeypatch.setattr(orchestrator_api, "run_pipeline", _fake_run_pipeline_success)
+    response = client.post("/research/runs", json={"research_question": "What is X?"})
+    run_id = response.json()["run_id"]
+    _wait_for_status(client, run_id, {"completed", "failed"})
+
+    with client.stream("GET", f"/research/runs/{run_id}/events") as stream:
+        assert stream.status_code == 200
+        body = "".join(stream.iter_text())
+
+    assert '"message": "working"' in body or '"message":"working"' in body
+    assert '"run_id": "run1"' in body or '"run_id":"run1"' in body
+    assert "event: end" in body
+
+
+def test_stream_research_run_events_returns_404_for_unknown_run_id(client):
+    response = client.get("/research/runs/does-not-exist/events")
+    assert response.status_code == 404

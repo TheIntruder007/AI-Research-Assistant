@@ -51,8 +51,8 @@ def dedupe(papers: list[Paper]) -> list[Paper]:
 
     A paper can arrive with a DOI from one source (OpenAlex/S2) and without one
     from another (arXiv always has doi=None), so we index every kept paper by
-    both keys and check both — otherwise the same work survives twice and Claude
-    double-counts its evidence.
+    both keys and check both — otherwise the same work survives twice and the
+    model double-counts its evidence.
     """
     by_doi: dict[str, Paper] = {}
     by_title: dict[str, Paper] = {}
@@ -202,7 +202,7 @@ async def run_pipeline(question: str, source_keys: list[str],
     all_papers: list[Paper] = []
     if selected:
         yield {"type": "status", "stage": "queries", "state": "running",
-               "message": "Generating search queries with Claude…"}
+               "message": "Generating search queries with the local model…"}
         queries = await generate_queries(question, fast_model)
         yield {"type": "queries", "queries": queries}
         yield {"type": "status", "stage": "queries", "state": "done",
@@ -266,9 +266,10 @@ async def run_pipeline(question: str, source_keys: list[str],
                 # to-least substantive, so keep the strongest ones.
                 candidates = candidates[:MAX_CANDIDATES_FOR_ANALYSIS]
             except PipelineError as e:
-                # Mining is best-effort. A rate-limit/connection error to Claude here
-                # must not discard the search/scite/full-text work already done — fall
-                # through to the main gap analysis with no author-flagged candidates.
+                # Mining is best-effort. A rate-limit/connection error to the
+                # local model here must not discard the search/full-text work
+                # already done — fall through to the main gap analysis with
+                # no author-flagged candidates.
                 candidates = []
                 yield {"type": "source_error", "source": "Full-text mining",
                        "message": f"{e} Continuing without author-flagged analysis."}

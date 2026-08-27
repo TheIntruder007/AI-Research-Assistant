@@ -111,13 +111,18 @@ def _write_json(path: Path, data: dict[str, Any]) -> None:
 
 
 async def run_pipeline(
-    request: ResearchRequest, output_root: Path | None = None,
+    request: ResearchRequest, output_root: Path | None = None, run_id: str | None = None,
 ) -> AsyncIterator[dict[str, Any]]:
     """Yields standardized progress events, then a final
     {"type": "result", "result": PipelineResult} event. Raises
-    PipelineError if any stage fails to produce a structured result."""
+    PipelineError if any stage fails to produce a structured result.
+
+    run_id is normally left to be generated here, but callers that need to
+    know the run_id before the first event arrives (e.g. the async
+    POST /research/runs API endpoint, which must return a run_id to the
+    client immediately) may pass one in explicitly."""
     output_root = output_root or DEFAULT_OUTPUT_ROOT
-    run_id = uuid4().hex
+    run_id = run_id or uuid4().hex
     run_directory = output_root / f"{_slugify(request.research_question)}_{run_id}"
     run_directory.mkdir(parents=True, exist_ok=True)
     _write_json(run_directory / "00_request.json", request.model_dump(mode="json"))

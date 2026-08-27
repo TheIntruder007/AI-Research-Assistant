@@ -1,0 +1,62 @@
+"""Top-level input/output contract for the full four-stage research pipeline.
+
+This is the orchestrator's own contract, one level above the four
+per-service contracts — see PROJECT_NOTES.md's "Inputs" section for the
+user-facing fields this maps from.
+"""
+
+from __future__ import annotations
+
+from typing import Literal
+
+from pydantic import BaseModel, Field, model_validator
+
+from shared.contracts.discovery_contract import DiscoveryResult
+from shared.contracts.qa_contract import QualityAssuranceResult
+from shared.contracts.verification_contract import VerificationResult
+from shared.contracts.writing_contract import TargetFormat, WritingResult
+
+PublicationType = Literal["conference", "journal", "other"]
+
+
+class ResearchRequest(BaseModel):
+    """The single request that starts a pipeline run."""
+    research_question: str
+    publication_type: PublicationType = "conference"
+    target_venue: str | None = None
+    target_format: TargetFormat = "IEEE"
+    format_other_name: str | None = None
+    deadline: str | None = None
+    corpus_size: int = Field(default=8, ge=6, le=9)
+    domain: str | None = None
+    year_range: tuple[int, int] | None = None
+    preferred_databases: list[str] = Field(default_factory=list)
+    language: str = "en"
+    max_draft_length: int | None = Field(default=None, gt=0)
+    keywords: list[str] = Field(default_factory=list)
+    excluded_topics: list[str] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def _require_format_other_name(self) -> "ResearchRequest":
+        if self.target_format == "Other" and not self.format_other_name:
+            raise ValueError("format_other_name is required when target_format is 'Other'")
+        return self
+
+
+class StageTimings(BaseModel):
+    discovery_seconds: float
+    writing_seconds: float
+    verification_seconds: float
+    quality_assurance_seconds: float
+
+
+class PipelineResult(BaseModel):
+    """Aggregate output of one full pipeline run."""
+    run_id: str
+    run_directory: str
+    request: ResearchRequest
+    discovery: DiscoveryResult
+    writing: WritingResult
+    verification: VerificationResult
+    quality_assurance: QualityAssuranceResult
+    timings: StageTimings

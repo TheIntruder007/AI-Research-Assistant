@@ -1,6 +1,6 @@
 # Till Now
 
-**Overall completion: ~92%** (all four pipeline services, the orchestrator, the terminal app, and the backend API built and verified live; integration test coverage and final docs remain for Review 3)
+**Overall completion: ~95%** (all four pipeline services, the orchestrator, the terminal app, and the backend API built and verified live; full-pipeline integration test coverage added; final review docs remain for Review 3)
 
 ## ✅ Completed components
 - Project workspace, now located at `E:\Agentic AI\AI-Research-Assistant` (moved 2026-08-27 from `Desktop\AI-Research-Assistant`; `.venv` was rebuilt fresh at the new path since venvs bake in an absolute path).
@@ -20,6 +20,7 @@
 - **Full four-service pipeline verified live, chained end-to-end** twice — once by manually chaining the four services (`scripts/smoke_test_full_pipeline.py`'s original form), and again through the real orchestrator once built (see next item). Confirmed Service 3's DOI-extraction regex works against Service 2's real IEEE-formatted reference strings, and Service 4's scoring/limitation logic produces sensible output across different runs (3.5/5.0 and 4.2/5.0 overall, correctly reflecting each run's actual citation count) — see DECISIONS.md D-013's verification note.
 - **Orchestrator and terminal app — built and verified live** (`orchestrator/pipeline.py`, `terminal_app/cli.py`, DECISIONS.md D-014): `run_pipeline()` runs Services 1→2→3→4 in sequence for one `ResearchRequest`, persists each stage's structured result under `outputs/<topic-slug>_<run-id>/NN_<stage>/result.json` plus a `final/` folder (draft, quality report, validation report, reference list) and `metadata.json`, and wraps every service's own ad hoc progress-event shape into one standard `{run_id, stage, service, status, emoji, title, message, details, timestamp}` format. `scripts/smoke_test_full_pipeline.py` now calls the orchestrator directly (rather than manually chaining services) and was re-run live end-to-end successfully — confirmed the full artifact layout persists correctly even on a run where Service 2 produced almost no citations (an expected instance of its known reliability limitation, not an orchestrator bug).
 - **Backend API — built and verified live** (`orchestrator/api.py`, DECISIONS.md D-015): a FastAPI app with `POST /research` (validates a `ResearchRequest`, runs the pipeline via `run_pipeline()`, returns the final `PipelineResult`) and `GET /health`. Synchronous/blocking by design for this MVP — a run can take 15+ minutes, and per the project brief, event streaming is an explicit later step, not part of this pass. Unit tests use FastAPI's `TestClient` with the orchestrator faked out (success, `PipelineError` → 502, malformed request → 422); the server was also started live with `uvicorn` and confirmed to serve `/health` (200) and reject a bad `/research` body (422) over a real HTTP connection.
+- **Full-pipeline live integration test added** (`tests/integration/test_full_pipeline_live.py`, DECISIONS.md D-016): runs the real orchestrator through all four services against the live model and live external APIs for a fresh full-size (6-paper) corpus, and asserts every per-stage `result.json` and every `final/` artifact actually exists and is contract-valid. Gated behind `AI_RESEARCH_RUN_FULL_PIPELINE=1` (skipped by default so the routine `pytest` run stays ~8 minutes) — ran successfully end-to-end in 913.01s (~15m13s).
 
 ## 🔄 Current working pipeline
 - Service 1 (Research Discovery) — working and verified in isolation. Known relevance/ranking bug: one full-corpus run selected an unrelated paper (an asthma-management guideline) for an intermittent-fasting/cognition query — not yet investigated.
@@ -27,7 +28,7 @@
 - Service 3 (Citation Verification) — working, verified in isolation and live-chained onto real Service 1→2 output (including a run with zero citations, handled gracefully). Reference-list-level checking only; positional in-text citation-marker verification is a documented future enhancement.
 - Service 4 (Quality Assurance) — working, verified in isolation and live-chained onto real Service 1→2→3 output across multiple runs with different citation counts. Fully deterministic (no LLM calls).
 - **Orchestrator** (`orchestrator/pipeline.py`) — working, verified live end-to-end; persists per-stage artifacts and standardized progress events. **Terminal app** (`terminal_app/cli.py`) — built, calls the orchestrator; its interactive prompt-collection logic is unit-tested (`tests/test_terminal_app_cli.py`) with simulated input, and its pipeline-calling path is the same `run_pipeline()` already verified live by the orchestrator smoke test.
-- Remaining for Review 3: integration/regression test coverage across the full live pipeline, and final documentation/review write-ups.
+- Remaining for Review 3: final documentation/review write-ups (`GET /research/{run_id}` + event streaming and the Service 1 relevance bug are optional, non-blocking follow-ups).
 
 ## 🐙 GitHub status
 - No remote repository yet. User will handle `gh auth login` later; local commits continue in the meantime.
@@ -35,7 +36,7 @@
 ## 📊 Review milestone status
 - **Review 1 (~33%): reached.** `docs/reviews/review_1.md` written. Workspace, local AI, and Service 1 are done and tested.
 - **Review 2 (~66%): reached.** Services 1–3 built and verified.
-- **Review 3 (~100%): in progress.** All four services, the orchestrator, the terminal app, and the backend API are built and verified live. Remaining: progress/event-streaming wiring over the API, integration/regression test coverage across the full pipeline, and final project documentation/review write-ups.
+- **Review 3 (~100%): in progress.** All four services, the orchestrator, the terminal app, and the backend API are built and verified live, and full-pipeline integration test coverage is in place. Remaining: final project documentation/review write-ups (progress/event-streaming over the API and the Service 1 relevance bug are optional follow-ups, not blockers).
 
 ## ⚠️ Known problems / limitations
 - This hardware (RTX 4060, 8GB VRAM) is slow for larger-context LLM calls on a 9B model. Service 2 runs with all revision/audit rounds disabled (`FAST_REVIEW_CONFIG`) for this reason — see DECISIONS.md D-010.
@@ -48,7 +49,6 @@
 - Recurring test-isolation issue: every pipeline service's entry point is named `service.py` and reached only via `sys.path` insertion, so a bare `import service` in a test file silently reuses whichever service module another test file imported first in the same pytest session. The orchestrator now imports all four in one process via `importlib.util.spec_from_file_location` under unique names up front (`orchestrator/pipeline.py::_load_service()`), which is also the fix pattern used per-test-file elsewhere; no longer purely an ad hoc per-occurrence patch now that the orchestrator centralizes it, though the test files still each do their own loading too.
 
 ## ➡️ Next technical task
-1. Add integration/regression tests across the full chained pipeline beyond the orchestrator's own fully-mocked unit tests (`tests/orchestrator/test_pipeline.py`, `tests/orchestrator/test_api.py`) — e.g. a marked-slow test that actually runs `scripts/smoke_test_full_pipeline.py`'s logic in CI-style form, or at least documents the manual verification cadence.
+1. Write `docs/reviews/review_2.md` (retroactively, since work has moved past that point) and `docs/reviews/review_3.md` now that the core pipeline (services + orchestrator + terminal app + API) and full-pipeline integration test coverage are complete.
 2. `GET /research/{run_id}` and progress/event streaming (SSE) over the API — explicitly deferred per the project's "build after the core pipeline" rule; the core synchronous path now works, so these are unblocked whenever prioritized.
 3. Optionally investigate Service 1's paper-relevance bug before final submission — not a blocker.
-4. Write `docs/reviews/review_2.md` (retroactively, since work has moved past that point) and `docs/reviews/review_3.md` now that the core pipeline (services + orchestrator + terminal app + API) is complete.

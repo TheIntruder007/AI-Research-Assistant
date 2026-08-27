@@ -1,6 +1,6 @@
 # Till Now
 
-**Overall completion: ~95%** (all four pipeline services, the orchestrator, the terminal app, and the backend API built and verified live; full-pipeline integration test coverage added; final review docs remain for Review 3)
+**Overall completion: ~98%** (all four pipeline services, the orchestrator, the terminal app, and the backend API built and verified live; full-pipeline integration test coverage and review docs complete)
 
 ## ✅ Completed components
 - Project workspace, now located at `E:\Agentic AI\AI-Research-Assistant` (moved 2026-08-27 from `Desktop\AI-Research-Assistant`; `.venv` was rebuilt fresh at the new path since venvs bake in an absolute path).
@@ -28,7 +28,7 @@
 - Service 3 (Citation Verification) — working, verified in isolation and live-chained onto real Service 1→2 output (including a run with zero citations, handled gracefully). Reference-list-level checking only; positional in-text citation-marker verification is a documented future enhancement.
 - Service 4 (Quality Assurance) — working, verified in isolation and live-chained onto real Service 1→2→3 output across multiple runs with different citation counts. Fully deterministic (no LLM calls).
 - **Orchestrator** (`orchestrator/pipeline.py`) — working, verified live end-to-end; persists per-stage artifacts and standardized progress events. **Terminal app** (`terminal_app/cli.py`) — built, calls the orchestrator; its interactive prompt-collection logic is unit-tested (`tests/test_terminal_app_cli.py`) with simulated input, and its pipeline-calling path is the same `run_pipeline()` already verified live by the orchestrator smoke test.
-- Remaining for Review 3: final documentation/review write-ups (`GET /research/{run_id}` + event streaming and the Service 1 relevance bug are optional, non-blocking follow-ups).
+- Review docs (`docs/reviews/review_2.md`, `review_3.md`) written. Remaining follow-ups (`GET /research/{run_id}` + event streaming, Service 1 relevance bug) are optional and non-blocking.
 
 ## 🐙 GitHub status
 - No remote repository yet. User will handle `gh auth login` later; local commits continue in the meantime.
@@ -36,7 +36,7 @@
 ## 📊 Review milestone status
 - **Review 1 (~33%): reached.** `docs/reviews/review_1.md` written. Workspace, local AI, and Service 1 are done and tested.
 - **Review 2 (~66%): reached.** Services 1–3 built and verified.
-- **Review 3 (~100%): in progress.** All four services, the orchestrator, the terminal app, and the backend API are built and verified live, and full-pipeline integration test coverage is in place. Remaining: final project documentation/review write-ups (progress/event-streaming over the API and the Service 1 relevance bug are optional follow-ups, not blockers).
+- **Review 3 (~100%): reached.** All four services, the orchestrator, the terminal app, and the backend API are built and verified live; full-pipeline integration test coverage and `docs/reviews/review_2.md`/`review_3.md` are complete. Progress/event-streaming over the API and the Service 1 relevance bug are optional follow-ups, not blockers.
 
 ## ⚠️ Known problems / limitations
 - This hardware (RTX 4060, 8GB VRAM) is slow for larger-context LLM calls on a 9B model. Service 2 runs with all revision/audit rounds disabled (`FAST_REVIEW_CONFIG`) for this reason — see DECISIONS.md D-010.
@@ -49,6 +49,6 @@
 - Recurring test-isolation issue: every pipeline service's entry point is named `service.py` and reached only via `sys.path` insertion, so a bare `import service` in a test file silently reuses whichever service module another test file imported first in the same pytest session. The orchestrator now imports all four in one process via `importlib.util.spec_from_file_location` under unique names up front (`orchestrator/pipeline.py::_load_service()`), which is also the fix pattern used per-test-file elsewhere; no longer purely an ad hoc per-occurrence patch now that the orchestrator centralizes it, though the test files still each do their own loading too.
 
 ## ➡️ Next technical task
-1. Write `docs/reviews/review_2.md` (retroactively, since work has moved past that point) and `docs/reviews/review_3.md` now that the core pipeline (services + orchestrator + terminal app + API) and full-pipeline integration test coverage are complete.
-2. `GET /research/{run_id}` and progress/event streaming (SSE) over the API — explicitly deferred per the project's "build after the core pipeline" rule; the core synchronous path now works, so these are unblocked whenever prioritized.
-3. Optionally investigate Service 1's paper-relevance bug before final submission — not a blocker.
+Core pipeline, orchestrator, terminal app, backend API, integration test coverage, and review documentation are all complete. Only optional, non-blocking follow-ups remain:
+1. `GET /research/{run_id}` and progress/event streaming (SSE) over the API — explicitly deferred per the project's "build after the core pipeline" rule; the core synchronous path now works, so this is unblocked whenever prioritized.
+2. Optionally investigate Service 1's paper-relevance bug before final submission.

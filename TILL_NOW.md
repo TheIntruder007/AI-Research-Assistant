@@ -32,7 +32,7 @@
 - Review docs (`docs/reviews/review_2.md`, `review_3.md`) written. `GET /research/runs/{run_id}` + SSE event streaming built and verified live. Only the Service 1 relevance bug remains as an optional, non-blocking follow-up.
 
 ## 🐙 GitHub status
-- No remote repository yet. User will handle `gh auth login` later; local commits continue in the meantime.
+- **Remote set up 2026-08-28**: private repository `TheIntruder007/AI-Research-Assistant`, local history pushed as `origin/master`. `Sadiq8064` invited as a collaborator (write access, invitation pending acceptance). See DECISIONS.md D-006.
 
 ## 📊 Review milestone status
 - **Review 1 (~33%): reached.** `docs/reviews/review_1.md` written. Workspace, local AI, and Service 1 are done and tested.
@@ -45,7 +45,6 @@
 - Service 1 relevance/ranking: at least one full-corpus run included an unrelated paper (an asthma-management guideline) among the "top 6" for an intermittent-fasting/cognition query. Not yet investigated — worth a look before Review 3 is considered fully closed, since a bad paper wastes a Service 2 literature-card slot and can starve Service 4's DOI-matched claim checking.
 - Service 3 only checks the reference list, not positional in-text citation markers against the draft body — a documented scope decision (DECISIONS.md D-012), not a defect.
 - Service 4's claim-to-evidence check depends on Service 3's extracted DOI matching a Discovery record; when Service 2's own leaf-section reliability issue leaves a draft with very few real citations (as in the live full-pipeline run — only 1 of the corpus's papers actually got cited), Service 4 has correspondingly little to check. This is expected given Service 2's known limitation, not a Service 4 defect.
-- `gh` CLI unavailable/unauthenticated — GitHub repo creation deferred by user request.
 - Semantic Scholar / OpenAlex-based verification searches intermittently fail with rate-limit-style errors in testing; the pipeline degrades gracefully in both cases.
 - Recurring test-isolation issue: every pipeline service's entry point is named `service.py` and reached only via `sys.path` insertion, so a bare `import service` in a test file silently reuses whichever service module another test file imported first in the same pytest session. The orchestrator now imports all four in one process via `importlib.util.spec_from_file_location` under unique names up front (`orchestrator/pipeline.py::_load_service()`), which is also the fix pattern used per-test-file elsewhere; no longer purely an ad hoc per-occurrence patch now that the orchestrator centralizes it, though the test files still each do their own loading too.
 

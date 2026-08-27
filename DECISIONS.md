@@ -170,9 +170,9 @@ Every important technical decision is recorded here: what was decided, why, alte
 - **Bug found and fixed during this manual verification:** the Research Discovery Service's own progress-event text included a leftover string from its original source repo — `"Generating search queries with Claude…"` — inaccurate for this project, which only ever calls the local Ollama model (`qwen3.5:9b`), never Claude or any cloud model. This had been emitting silently all along (the terminal app already prints every event's `message` field) but was only actually read closely once the SSE stream's raw payload was inspected here. Fixed to `"Generating search queries with the local model…"`; two similar leftover code comments (one referencing "Claude", one referencing an unused "scite" integration from the source repo) were also cleaned up in the same file. This is a plain accuracy bug fix, unrelated to D-004's documentation-privacy rule — D-004 governs what project-facing *docs* say about component provenance, not runtime-user-facing text describing which model is actually running.
 - **Impact:** `orchestrator/api.py` now exposes both the original synchronous endpoint and the new asynchronous/streaming trio; `orchestrator/run_registry.py` is the new supporting module. This completes the two explicitly-deferred API items from the project brief — no further API work is planned for this MVP.
 
-## D-006 — GitHub repository setup deferred pending CLI auth
-- **Date:** 2026-08-26
-- **Decision:** GitHub CLI (`gh`) is now installed (v2.98.0) but not authenticated on this machine — `gh auth login` requires an interactive browser/token step only the user can complete. Repository creation and collaborator invite (Sadiq8064) will be attempted immediately once auth succeeds; not retried indefinitely.
-- **Reason:** Per spec — don't assume GitHub auth, don't get stuck retrying.
-- **Alternatives considered:** None — this is a hard environment constraint.
-- **Impact:** Local git history is being built regardless; push happens once remote is available. User action needed: run `gh auth login` in a terminal and follow the prompts.
+## D-006 — GitHub repository setup
+- **Date:** 2026-08-26 (deferred), completed 2026-08-28.
+- **Decision:** GitHub CLI (`gh`) authenticated via the device-code web flow (account `TheIntruder007`). Created a **private** GitHub repository (`AI-Research-Assistant`), pushed the full local git history to it as `origin/master`, and invited `Sadiq8064` as a collaborator (write access, pending acceptance).
+- **Reason:** GitHub setup was deferred at D-006's original writing because `gh auth login` requires an interactive browser/token step only the user can complete; done now that the user explicitly requested it and completed the device-code approval. Repository kept private per explicit user instruction.
+- **Alternatives considered:** Public repository — rejected per explicit user instruction to keep it private.
+- **Impact:** Local git history now has a remote (`https://github.com/TheIntruder007/AI-Research-Assistant`). Future commits should be pushed to keep the remote in sync; no CI/hooks configured against it yet.

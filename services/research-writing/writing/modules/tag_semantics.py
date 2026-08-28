@@ -73,7 +73,21 @@ async def define_tag_semantics(
             parent_id=node.parent_id,
             child_ids=node.child_ids,
             depth=node.depth,
-            node_type=semantic.node_type,
+            # A "container" node has no prose of its own (graph.py renders
+            # only its heading; its children's summaries carry the content —
+            # see D-020) — but `child_ids` comes from the deterministic
+            # outline structure, independent of this LLM-assigned
+            # `node_type`. A childless node classified as "container" is a
+            # guaranteed, model-luck-independent blank section: nothing can
+            # ever carry its content. Confirmed on a real run (a flat,
+            # childless "Background" section rendered permanently empty,
+            # caught by completeness.py — see DECISIONS.md D-026). Force such
+            # a node to "content" (a real, writable leaf) instead of trusting
+            # a structurally-impossible classification.
+            node_type=(
+                "content" if semantic.node_type == "container" and not node.child_ids
+                else semantic.node_type
+            ),
         )
         for node, semantic in zip(tree, result.tags, strict=True)
     ]

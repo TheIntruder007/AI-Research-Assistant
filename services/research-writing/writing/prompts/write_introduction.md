@@ -21,3 +21,8 @@ accessible prose and finish with a precise statement of the review's analytical 
 
 Render citations only as supplied `[@P001]` placeholders. Do not quote sources or cite page
 numbers. Return prose and complete `cited_paper_ids` and `used_point_ids`.
+
+If `target_words`/`min_words` is present in the supplied context, use it as this section's
+planned scope — develop the four-point arc above fully enough to reach it when the supplied
+summaries and overview points genuinely support that much content, but never pad, repeat, or
+introduce anything not already present in the inputs to reach a word count.

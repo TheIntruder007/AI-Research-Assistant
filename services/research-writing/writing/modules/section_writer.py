@@ -109,9 +109,26 @@ async def write_section_with_revisions(
         rounds += 1
 
     final_audit = audits[-1]
+    # Fix 9 "Case B": if the bounded revision loop is exhausted and the ONLY
+    # remaining failure is below_minimum_length, this is genuine evidence
+    # scarcity, not a wrong/invalid section. Keep the (shorter) content
+    # instead of discarding it as unresolved/failed, and flag
+    # evidence_limited so callers never mistake it for under-generation or
+    # a correctness failure. See DECISIONS.md D-026.
+    length_only_failure = (
+        not final_audit.passed
+        and final_audit.below_minimum_length
+        and not final_audit.unsupported_claims
+        and not final_audit.out_of_scope_content
+        and not final_audit.invalid_paper_ids
+        and not final_audit.missing_key_points
+        and not final_audit.duplicated_child_content
+    )
+    resolved = final_audit.passed or length_only_failure
     return SectionRunResult(
         draft=draft,
         audits=audits,
-        resolved=final_audit.passed,
-        unresolved_issues=[] if final_audit.passed else final_audit.revision_instructions,
+        resolved=resolved,
+        unresolved_issues=[] if resolved else final_audit.revision_instructions,
+        evidence_limited=length_only_failure,
     )

@@ -23,6 +23,8 @@ from shared.contracts.writing_contract import (  # noqa: E402
 from shared.utilities import llm_provider  # noqa: E402
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+from completeness import assess_completeness  # noqa: E402
+from word_budget import classify_length  # noqa: E402
 from writing.adapters.language_model import close_language_model  # noqa: E402
 from writing.adapters.ollama_model import create_ollama_model  # noqa: E402
 from writing.config import ReviewConfig  # noqa: E402
@@ -148,11 +150,30 @@ async def run_writing(request: WritingRequest,
 
     total_sections = sum(1 for line in outline.splitlines() if line.startswith("#"))
     failed_sections = len(result.failed_tag_ids)
-    # Explicit completeness classification (DECISIONS.md D-019): "complete"
-    # requires both the graph's own success signal (every section resolved,
-    # audit passed) AND that no failed section was actually detected — the
-    # two should always agree, but never silently trust one without the other.
-    draft_status = "complete" if (result.succeeded and failed_sections == 0) else "partial"
+
+    # Real completeness validation (Fix 6, DECISIONS.md D-026): inspect the
+    # ACTUAL RENDERED draft_text — the same markdown that becomes draft.md /
+    # paper.tex / the final PDF — rather than trusting only the graph's own
+    # internal tag-resolution signal, which cannot see a blank bookend
+    # Introduction/Conclusion (see completeness.py's docstring for the real
+    # run that proved this gap).
+    completeness = assess_completeness(
+        draft_text, outline, output_language=request.output_language,
+    )
+    # "failed" always wins from the rendered-text check; otherwise fall back
+    # to "partial" if the graph itself reported an unresolved failure that
+    # didn't happen to render as one of completeness.py's known placeholder
+    # strings (belt-and-braces — never silently trust only one signal).
+    if completeness.status == "failed":
+        draft_status = "failed"
+    elif completeness.status == "partial" or not result.succeeded or failed_sections:
+        draft_status = "partial"
+    else:
+        draft_status = "complete"
+
+    actual_words = len(draft_text.split())
+    length_status = classify_length(actual_words, request.target_words)
+
     metadata = DraftMetadata(
         model_name=llm_provider.DEFAULT_MODEL,
         run_id=run_id,
@@ -164,6 +185,16 @@ async def run_writing(request: WritingRequest,
         total_sections=total_sections,
         failed_sections=failed_sections,
         draft_status=draft_status,
+        target_words=request.target_words,
+        actual_words=actual_words,
+        length_status=length_status,
+        evidence_limited_sections=completeness.evidence_limited_sections,
+        broken_sections=sorted(
+            set(completeness.missing_sections)
+            | set(completeness.blank_sections)
+            | set(completeness.failed_sections)
+        ),
+        duplicate_sections=completeness.duplicate_sections,
     )
 
     writing_result = WritingResult(

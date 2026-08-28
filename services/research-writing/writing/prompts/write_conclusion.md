@@ -16,3 +16,8 @@ Introduce no new paper, point, mechanism, example, recommendation, or factual cl
 quote sources, cite page numbers, use headings, or mention "this review". Render citations
 only as supplied `[@P001]` placeholders. Return polished prose and complete
 `cited_paper_ids` and `used_point_ids`.
+
+If `target_words`/`min_words` is present in the supplied context, use it as this section's
+planned scope — develop the three-level synthesis above fully enough to reach it when the
+summaries genuinely support that much content, but never pad, repeat, or introduce anything
+not already present in the summaries to reach a word count.

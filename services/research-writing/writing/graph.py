@@ -64,6 +64,7 @@ from writing.modules.tag_index import build_tag_index
 from writing.modules.tag_semantics import define_tag_semantics
 from writing.modules.tag_tree import build_tag_tree
 from writing.modules.writing_order import plan_writing_order
+from word_budget import allocate_section_budgets
 from writing.schemas import (
     CardAudit,
     CitationInfo,
@@ -322,12 +323,17 @@ def build_review_graph(
                 for child_id in node.child_ids
                 if store.exists(f"section_summaries/{child_id}.json")
             }
-            target_words = None
-            total_words = state.get("target_words")
-            if total_words is not None:
-                target_words = max(
-                    1, total_words // max(1, len(state["writing_order"]))
-                )
+            # Per-role budgets (target/min/max), not a naive equal split —
+            # see DECISIONS.md D-025/D-026 and word_budget.py. Keyed by the
+            # tag's own title, which matches the outline headings
+            # writing_prep.py::build_outline() produces (e.g. "Literature
+            # Review"). Returns {} (no budget for anything) when no total
+            # target was requested, exactly preserving pre-D-025 behavior.
+            budgets = allocate_section_budgets(state.get("target_words"))
+            budget = budgets.get(node.title)
+            target_words = budget.target if budget else None
+            min_words = budget.minimum if budget else None
+            max_words = budget.maximum if budget else None
             context = build_section_context(
                 tag_id,
                 tree,
@@ -336,6 +342,8 @@ def build_review_graph(
                 child_summaries,
                 target_words,
                 output_language=state["output_language"],
+                min_words=min_words,
+                max_words=max_words,
             )
             store.write_json(f"section_contexts/{tag_id}.json", _dump(context))
 
@@ -404,6 +412,7 @@ def build_review_graph(
                     summary=draft.summary or draft.content[:1200],
                     cited_paper_ids=draft.cited_paper_ids,
                     used_point_ids=draft.used_point_ids,
+                    evidence_limited=run_result.evidence_limited,
                 )
 
             if not run_result.resolved:
@@ -518,6 +527,9 @@ def build_review_graph(
             summary.used_point_ids for summary in summaries
         )
         has_conclusion_evidence = any(summary.used_point_ids for summary in summaries)
+        bookend_budgets = allocate_section_budgets(state.get("target_words"))
+        intro_budget = bookend_budgets.get("Introduction")
+        conclusion_budget = bookend_budgets.get("Conclusion")
         if has_intro_evidence:
             introduction = await write_introduction(
                 state["review_question"],
@@ -526,6 +538,9 @@ def build_review_graph(
                 overview_points,
                 model,
                 output_language=state["output_language"],
+                target_words=intro_budget.target if intro_budget else None,
+                min_words=intro_budget.minimum if intro_budget else None,
+                max_words=intro_budget.maximum if intro_budget else None,
             )
         else:
             chinese_output = state["output_language"].casefold().startswith("zh")
@@ -546,6 +561,9 @@ def build_review_graph(
                 summaries,
                 model,
                 output_language=state["output_language"],
+                target_words=conclusion_budget.target if conclusion_budget else None,
+                min_words=conclusion_budget.minimum if conclusion_budget else None,
+                max_words=conclusion_budget.maximum if conclusion_budget else None,
             )
         else:
             chinese_output = state["output_language"].casefold().startswith("zh")

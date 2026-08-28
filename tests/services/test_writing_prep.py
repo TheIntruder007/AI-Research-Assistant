@@ -39,15 +39,25 @@ def test_build_outline_has_required_sections_and_no_per_gap_subsections():
     outline = build_outline(_sample_discovery())
     lines = outline.splitlines()
     assert sum(1 for line in lines if line.startswith("# ")) == 1  # exactly one root heading
-    assert "## Introduction" in outline
+    assert "## Background" in outline
     assert "## Literature Review" in outline
+    assert "## Discussion" in outline
     assert "## Limitations" in outline
-    assert "## Conclusion" in outline
     # Gap titles must NOT become their own evidence-required leaf tags — see
     # DECISIONS.md D-011 (a real 6-paper run showed this excludes almost the
     # whole corpus from every subsection).
     assert "Gap About Something" not in outline
     assert "References" not in outline  # added separately by the writer, not the outline
+
+
+def test_build_outline_no_longer_has_its_own_introduction_or_conclusion_tags():
+    """See DECISIONS.md D-025: Introduction/Conclusion are now generated
+    exclusively by the writing graph's bookend calls (write_introduction()/
+    write_conclusion()), not duplicated as outline tags — removes both the
+    duplicated-content and blank-both-paths failure modes."""
+    outline = build_outline(_sample_discovery())
+    assert "## Introduction" not in outline
+    assert "## Conclusion" not in outline
 
 
 def test_render_research_gap_section_includes_gap_and_novelty_content():

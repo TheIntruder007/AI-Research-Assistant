@@ -47,8 +47,15 @@ async def write_introduction(
     model: LanguageModel,
     *,
     output_language: str = "en",
+    target_words: int | None = None,
+    min_words: int | None = None,
+    max_words: int | None = None,
 ) -> SectionDraft:
-    """Introduce the stable body using only overview evidence and top-level summaries."""
+    """Introduce the stable body using only overview evidence and top-level summaries.
+
+    target_words/min_words/max_words: this bookend's planned length budget
+    (see DECISIONS.md D-025/D-026) — None when no total paper length was
+    requested, exactly preserving pre-D-025 behavior."""
 
     return await _write_part(
         "write_introduction.md",
@@ -61,6 +68,9 @@ async def write_introduction(
             ],
             "overview_points": [point.model_dump(mode="json") for point in overview_points],
             "output_language": output_language,
+            "target_words": target_words,
+            "min_words": min_words,
+            "max_words": max_words,
         },
         model,
     )
@@ -72,6 +82,9 @@ async def write_conclusion(
     model: LanguageModel,
     *,
     output_language: str = "en",
+    target_words: int | None = None,
+    min_words: int | None = None,
+    max_words: int | None = None,
 ) -> SectionDraft:
     """Conclude from audited body summaries without introducing new evidence."""
 
@@ -84,6 +97,9 @@ async def write_conclusion(
                 summary.model_dump(mode="json") for summary in section_summaries
             ],
             "output_language": output_language,
+            "target_words": target_words,
+            "min_words": min_words,
+            "max_words": max_words,
         },
         model,
     )

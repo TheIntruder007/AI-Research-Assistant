@@ -11,6 +11,7 @@ purely the product/UX layer: config, provider readiness, and presentation.
 from __future__ import annotations
 
 import asyncio
+import importlib.util
 import sys
 from pathlib import Path
 
@@ -35,6 +36,31 @@ from researchgenie.tui import PipelineView, render_banner, render_completion, re
 from shared.contracts.pipeline_contract import ResearchRequest  # noqa: E402
 
 _TARGET_FORMATS = ["IEEE", "Springer"]
+
+
+def _load_word_budget():
+    """word_budget.py is a standalone module inside services/research-writing/
+    (not a package) — loaded by explicit file path, the same pattern
+    orchestrator/pipeline.py uses for that service, so this CLI never has to
+    put services/research-writing on sys.path (and risk colliding with a
+    same-named module elsewhere in the project — see DECISIONS.md D-010)."""
+    path = ROOT / "services" / "research-writing" / "word_budget.py"
+    spec = importlib.util.spec_from_file_location("researchgenie_word_budget", path)
+    module = importlib.util.module_from_spec(spec)
+    # Register under its own name before exec: word_budget.py's @dataclass
+    # usage needs to resolve its own module via sys.modules[__module__]
+    # while it is executing, which module_from_spec() alone does not set up.
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+_word_budget = _load_word_budget()
+_LENGTH_PRESETS = _word_budget.LENGTH_PRESETS
+_DEFAULT_LENGTH_PRESET = _word_budget.DEFAULT_LENGTH_PRESET
+# Display order or 1/2/3 prompt choices; kept separate from the dict's
+# iteration order so this stays readable regardless of dict definition order.
+_LENGTH_CHOICES = ["short", "standard", "detailed"]
 
 
 def _ensure_ready(console: Console, config: rg_config.Config) -> bool:
@@ -82,8 +108,19 @@ def _collect_request(console: Console) -> ResearchRequest:
     format_choice = Prompt.ask("Select", choices=["1", "2"], default="1")
     target_format = "IEEE" if format_choice == "1" else "Springer"
 
+    console.print(
+        "\nPaper length: "
+        f"[1] Short (~{_LENGTH_PRESETS['short']} words)  "
+        f"[2] Standard (~{_LENGTH_PRESETS['standard']} words)  "
+        f"[3] Detailed (~{_LENGTH_PRESETS['detailed']} words)"
+    )
+    length_choice = Prompt.ask("Select", choices=["1", "2", "3"], default="2")
+    length_preset = _LENGTH_CHOICES[int(length_choice) - 1]
+    target_words = _LENGTH_PRESETS[length_preset]
+
     return ResearchRequest(
         research_question=question, corpus_size=corpus_size, target_format=target_format,
+        max_draft_length=target_words,
     )
 
 
@@ -136,9 +173,14 @@ async def _run_research(console: Console, request: ResearchRequest) -> None:
     if Path(result.run_directory, "final", "paper.pdf").exists():
         artifacts.insert(0, "Compiled research paper (paper.pdf)")
 
+    draft_meta = result.writing.draft_metadata
     render_completion(
         console, run_directory=result.run_directory,
         overall_score=result.quality_assurance.scores.overall, artifacts=artifacts,
+        draft_status=draft_meta.draft_status, length_status=draft_meta.length_status,
+        actual_words=draft_meta.actual_words, target_words=draft_meta.target_words,
+        evidence_limited_sections=draft_meta.evidence_limited_sections,
+        broken_sections=draft_meta.broken_sections,
     )
 
 
@@ -149,6 +191,7 @@ def _run_app(console: Console, config: rg_config.Config) -> None:
     render_summary(
         console, question=request.research_question, corpus_size=request.corpus_size,
         target_format=request.target_format, provider_label=_provider_label(config),
+        target_words=request.max_draft_length,
     )
     if not Confirm.ask("\n[bold]Start research?[/bold]", default=True):
         console.print(f"[{MUTED}]Cancelled.[/{MUTED}]")

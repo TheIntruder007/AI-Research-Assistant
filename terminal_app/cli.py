@@ -8,6 +8,7 @@ Usage:
 from __future__ import annotations
 
 import asyncio
+import importlib.util
 import sys
 from pathlib import Path
 
@@ -21,6 +22,26 @@ from shared.contracts.pipeline_contract import ResearchRequest  # noqa: E402
 
 _TARGET_FORMATS = ("IEEE", "Springer", "ACM", "APA", "Other")
 _PUBLICATION_TYPES = ("conference", "journal", "other")
+
+
+def _load_word_budget():
+    """See researchgenie/cli.py's identical helper: word_budget.py is a
+    standalone module, loaded by explicit file path rather than added to
+    sys.path, to avoid module-name collisions (DECISIONS.md D-010)."""
+    path = ROOT / "services" / "research-writing" / "word_budget.py"
+    spec = importlib.util.spec_from_file_location("terminal_app_word_budget", path)
+    module = importlib.util.module_from_spec(spec)
+    # Register under its own name before exec: word_budget.py's @dataclass
+    # usage needs to resolve its own module via sys.modules[__module__]
+    # while it is executing, which module_from_spec() alone does not set up.
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+_word_budget = _load_word_budget()
+_LENGTH_PRESETS = _word_budget.LENGTH_PRESETS
+_LENGTH_CHOICES = ("short", "standard", "detailed")
 
 
 def _prompt(label: str, default: str = "") -> str:
@@ -73,6 +94,10 @@ def collect_request_interactively() -> ResearchRequest:
     keywords = _prompt_list("Keywords")
     excluded_topics = _prompt_list("Excluded topics")
 
+    length_summary = ", ".join(f"{name}=~{words}w" for name, words in _LENGTH_PRESETS.items())
+    length_preset = _prompt_choice(f"Paper length ({length_summary})", _LENGTH_CHOICES, "standard")
+    target_words = _LENGTH_PRESETS[length_preset]
+
     return ResearchRequest(
         research_question=research_question,
         publication_type=publication_type,  # type: ignore[arg-type]
@@ -85,6 +110,7 @@ def collect_request_interactively() -> ResearchRequest:
         language=language,
         keywords=keywords,
         excluded_topics=excluded_topics,
+        max_draft_length=target_words,
     )
 
 

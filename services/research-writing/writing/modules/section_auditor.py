@@ -68,12 +68,17 @@ def audit_section(
     )
     if substantive and (not draft.used_point_ids or not draft.cited_paper_ids):
         unsupported_claims.append("substantive prose has no evidence provenance")
-    if context.target_words is not None:
+    below_minimum_length = False
+    if context.max_words is not None:
         actual_words = _word_count(draft.content)
-        if actual_words > context.target_words:
+        if actual_words > context.max_words:
             out_of_scope_content.append(
-                f"section exceeds target_words: {actual_words} > {context.target_words}"
+                f"section exceeds max_words: {actual_words} > {context.max_words}"
             )
+    if context.min_words is not None and substantive:
+        actual_words = _word_count(draft.content)
+        if actual_words < context.min_words:
+            below_minimum_length = True
     if (
         not context.direct_points
         and not context.ancestor_context
@@ -110,11 +115,20 @@ def audit_section(
         revision_instructions.append(
             "Bind substantive prose to cited_paper_ids and used_point_ids from the context."
         )
-    if any(item.startswith("section exceeds target_words:") for item in out_of_scope_content):
-        revision_instructions.append("Shorten the section to its configured target_words limit.")
+    if any(item.startswith("section exceeds max_words:") for item in out_of_scope_content):
+        revision_instructions.append("Shorten the section to its configured max_words limit.")
+    if below_minimum_length:
+        revision_instructions.append(
+            f"This section is shorter than its planned scope ({_word_count(draft.content)} of "
+            f"{context.min_words}+ words expected). Develop the analysis further using the "
+            "evidence already available in direct_points/ancestor_context/child_summaries — "
+            "add depth, comparison, or distinct supported claims. Do not repeat existing "
+            "sentences, pad with filler, or introduce any claim, paper, or point outside the "
+            "allowed evidence."
+        )
 
     passed = not (
-        unsupported_claims or out_of_scope_content or invalid_paper_ids
+        unsupported_claims or out_of_scope_content or invalid_paper_ids or below_minimum_length
     )
     return SectionAudit(
         tag_id=context.tag_id,
@@ -122,6 +136,7 @@ def audit_section(
         unsupported_claims=unsupported_claims,
         out_of_scope_content=out_of_scope_content,
         invalid_paper_ids=invalid_paper_ids,
+        below_minimum_length=below_minimum_length,
         missing_key_points=[],
         duplicated_child_content=[],
         revision_instructions=revision_instructions,

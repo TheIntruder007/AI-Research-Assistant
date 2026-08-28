@@ -40,6 +40,11 @@ article prose.
 - In prose, cite only with the exact `[@P001]` placeholder form. In `cited_paper_ids`, use the
   bare paper ID only — `"P001"`, never `"@P001"` or `"[@P001]"`. The `@` and brackets belong to
   the prose placeholder syntax only, never to a `cited_paper_ids` list entry.
+- To cite multiple papers for the same claim, repeat the full placeholder for each one
+  back-to-back — `[@P003][@P004][@P005][@P006]` — never a range or list shorthand such as
+  `[P003-P006]`, `[@P003-P006]`, or `[P003, P004]`. Each citation must be its own complete
+  `[@P0XX]` placeholder; a shorthand form cannot be resolved and causes the whole claim to be
+  rejected as unsupported even when every paper in it was genuinely allowed.
 
 Before returning, silently check: Is each major claim traceable? Is the strongest contrary
 evidence represented? Are confidence and scope calibrated? Does every paragraph move the

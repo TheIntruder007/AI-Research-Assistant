@@ -6,6 +6,8 @@
 > **Update (same day, second pass):** a follow-up pass focused entirely on Service 2 — see [§10](#-10-service-2-final-reliability-pass-2026-08-28-follow-up) below for the tag-semantics fix, the container-content bug fix, the revision-rounds finding, and the final honest verdict (🟡 partially improved).
 >
 > **Update (same day, third pass):** a final follow-up fixed the one remaining citation-boundary failure — see [§12](#-12-service-2-citation-boundary-fix-2026-08-28-third-pass) for the root cause (a false-positive detection bug, not a genuine evidence leak), the fix, and the final verdict (**🟢 COMPLETE** for this specific problem, verified across 3 topics).
+>
+> **Update (same day, fourth pass):** a length-and-completeness pass fixing the paper-length/short-draft problem and adding real IEEE/Springer format support — see [§15](#-15-paper-length-and-completeness-fix-2026-08-28-fourth-pass) below.
 
 ---
 
@@ -404,3 +406,165 @@ The one real Gemini API request made in this round returned a transient `503` be
 ### 🏆 Updated Final Verdict
 
 Still **🟢 COMPLETE for the product experience achievable and verifiable in this environment** — and now with a meaningfully larger share of the previously-acknowledged gaps closed by genuine, isolated testing rather than left as assumptions. The one real live-testing attempt at a new gap (Gemini) surfaced and fixed a real security issue instead of confirming the original question — reported here exactly as it happened, not glossed over.
+
+---
+
+## 1️⃣5️⃣ 15. Paper Length and Completeness Fix (2026-08-28, fourth pass)
+
+**Full technical detail:** `DECISIONS.md` D-025 (outline restructuring) and D-026 (length planning / under-generation / completeness). This section is the results summary; the "why" for every decision lives there.
+
+### 🎯 Index
+1. Problem
+2. Root causes
+3. Architecture changes
+4. Length planning
+5. Section planning
+6. Writing improvements
+7. Revision / under-generation handling
+8. Completeness validation
+9. IEEE/Springer format support
+10. Tests performed
+11. Before vs after (real measured runs)
+12. Bugs found and fixed
+13. Honest remaining limitations
+14. Final verdict
+
+### 🧩 1. Problem
+Papers were short (diagnostic baseline: **~1,353 words average** across 11 real runs) and `draft_status: "complete"` did not reliably mean the rendered paper was actually complete — see `PAPER_OUTPUT_DIAGNOSTIC.md` from the previous, diagnostic-only pass.
+
+### 🔍 2. Root Causes (confirmed in the diagnostic, fixed in this pass)
+- A hardcoded 4-section outline, with two of those sections (`Introduction`/`Conclusion`) **duplicating** the writing graph's own separate "bookend" generation calls.
+- `max_draft_length`/`target_words` wired through every contract but **never set by any UI**, and even when set, enforced only as a naive equal-split upper bound — never a real per-section minimum or a generation instruction the model ever saw.
+- `write_leaf_section.md` telling the model to prefer a short synthesis over padding, with **no counter-instruction** to develop a section fully when evidence genuinely supported more.
+- `draft_status: "complete"` computed only from the writing graph's own internal signal (`succeeded` + `failed_tag_ids`) — blind to a blank/replaced bookend section, since the bookends were never covered by that signal at all.
+
+### 🏗️ 3. Architecture Changes
+- **New module** `services/research-writing/word_budget.py` — total-target → per-section `WordBudget(target, minimum, maximum)`, plus `classify_length()` for whole-paper length classification.
+- **New module** `services/research-writing/completeness.py` — parses the ACTUAL RENDERED draft markdown by its `## ` headings and reports per-section present/blank/failed/evidence-limited/duplicate status, plus one overall `complete`/`partial`/`failed` verdict.
+- `writing/modules/review_assembler.py` now renders explicit `## Introduction`/`## Conclusion` headings around the bookend content (previously bare, unheaded prose) — both a real structural improvement and what makes `completeness.py` able to see them at all.
+- `writing_prep.py::build_outline()` now returns `Background / Literature Review / Discussion / Limitations` — no outline-owned `Introduction`/`Conclusion` (see §5 below).
+- `shared/contracts/writing_contract.py::DraftMetadata` gained `target_words`, `actual_words`, `length_status`, `evidence_limited_sections`, `broken_sections`, `duplicate_sections`, and a third `draft_status` value, `"failed"`.
+
+### 📏 4. Length Planning
+- Both CLIs (`researchgenie/cli.py`, `terminal_app/cli.py`) now ask the user to choose **Short (~2,200w) / Standard (~4,000w) / Detailed (~6,000w)** — feeding `ResearchRequest.max_draft_length`, exactly as the existing field/wiring already expected (`max_draft_length` → `WritingRequest.target_words` → the writing graph), per the explicit "don't rename without understanding compatibility" instruction.
+- `word_budget.allocate_section_budgets()` splits that one total into a **weighted** per-section budget (`target`/`minimum`/`maximum`) — Literature Review gets the largest share (32%), Conclusion the smallest bookend share (10%) — never an equal split.
+- `word_budget.classify_length()` compares the whole paper's actual word count to the requested total (`short` / `on_target` / `over_target`, 0.7×–1.4× tolerance band) for final reporting.
+
+### 🧱 5. Section Planning
+- Outline restructured to `Background / Literature Review / Discussion / Limitations` — the outline's own `Introduction`/`Conclusion` tags are **removed**, leaving the writing graph's separate bookend calls as the single, unambiguous owner of both (see §7 "Bugs Found").
+- `Methodology`/`Results` are deliberately **never** included: this pipeline only ever synthesizes existing published literature (Discovery → Writing), runs no experiments, and produces no primary results — including them for "every question" would be dishonest padding, not adaptive planning. Documented explicitly in D-025 as the concrete meaning of "only when appropriate" for this system, not a missed requirement.
+- `Research Gap Analysis`/`Proposed Novelty` continue to be rendered directly from Service 1's own synthesis (`render_research_gap_section()`), never re-derived by the writing graph — unchanged, and still evidence-safe per the pre-existing D-011 lesson.
+
+### ✍️ 6. Writing Improvements
+`write_leaf_section.md`, `write_introduction.md`, `write_conclusion.md`, and `revise_section.md` each gained a balanced instruction: **never pad, repeat, invent evidence, or fabricate a citation** to reach a word target — but when the evidence genuinely supports it, **develop the analysis fully enough to reach the planned minimum**, covering each distinct supported claim/comparison rather than stopping after the first one.
+
+### 🔁 7. Revision / Under-generation Handling
+- `section_auditor.py::audit_section()` now fails a section (`below_minimum_length`) when its real, substantive content falls short of its planned minimum — tracked separately from correctness failures, and drives the *existing* bounded revision loop with a targeted "expand using the evidence you already have" instruction (**Case A**).
+- `section_writer.py::write_section_with_revisions()`: if every bounded revision round is exhausted and the **only** remaining failure is length, this is recognized as genuine evidence scarcity (**Case B**) — the shorter content is **kept**, never discarded, and flagged `evidence_limited=True`. A correctness failure that also happens to be short still fails normally (**Case C** — the pre-existing failure/retry architecture, untouched).
+
+### ✅ 8. Completeness Validation
+`completeness.py::assess_completeness()` checks every required section (outline sections + both bookends) against the real rendered text for: present / non-blank / non-whitespace / not a known failure-placeholder string / not duplicated. Returns `complete` (every section real content, short-but-evidence-limited sections still count), `partial` (at least one section broken), or `failed` (every section broken, or **both** bookends are — the paper is unusable).
+
+### 📄 9. IEEE/Springer Format Support
+- `shared/utilities/latex_export.py::markdown_to_latex()` now takes `target_format` and selects `IEEEtran` (IEEE) or `llncs` (Springer) as the LaTeX document class — wired from `ResearchRequest.target_format`, which the CLI already asked the user to choose (one-at-a-time, never both) and which the writing service already used for citation style (`ieee` vs `chicago-author-date`) before this pass.
+- Springer's actual "official" class, `svjour3`, is **confirmed not available** in `tectonic`'s bundled TeX distribution (direct compile test); `llncs` (Springer's real, standard Lecture Notes in Computer Science class) is used instead — an honest, documented substitution, not a silent swap.
+- Both templates were verified by an **actual `tectonic` compile** producing a real, valid, non-empty PDF (checked by file size, not just "no error").
+
+### 🧪 10. Tests Performed
+| Area | Tests | Result |
+|---|---|---|
+| Outline planning | `test_writing_prep.py` (updated: no Intro/Conclusion tags, new section names) | ✅ |
+| Length planning | `test_word_budget.py` (11 tests: allocation, floors, `classify_length`) | ✅ |
+| Under-generation / evidence-limited | `test_writing_under_generation.py` (5 tests, incl. the critical "no-evidence placeholder is never mis-flagged" case) | ✅ |
+| Completeness validation | `test_completeness.py` (12 tests: blank/missing/duplicate/failure-placeholder/evidence-limited/both-bookends-broken) | ✅ |
+| Container/child_ids bug (found via real run — see §12) | `test_tag_semantics_container_fix.py` (3 tests) | ✅ |
+| IEEE/Springer templates | `test_latex_export.py` (5 new tests) + a real `tectonic` compile producing real PDFs for both formats | ✅ |
+| CLI length prompt | `test_cli_helpers.py`, `test_terminal_app_cli.py` (updated) | ✅ |
+| Full regression | Entire suite, including the real live-model pipeline integration test | **153 passed, 1 skipped, 0 regressions** |
+
+### 📊 11. Before vs After (real measured runs — nothing fabricated)
+
+**Before** (from `PAPER_OUTPUT_DIAGNOSTIC.md`, real historical runs, no length control, old 4-section outline):
+
+| Metric | Value |
+|---|---|
+| Average draft length (11 runs) | ~1,353 words |
+| Longest real run (`5d362353`, remote work) | 2,568 words, 6 PDF pages, `draft_status: "complete"` |
+| Average QA overall score (11 runs) | 3.88 / 5.0 |
+| Historical runs whose bookend was actually replaced/blank but reported `"complete"` | **3 of 11** (`a8e525ae`, `73f8ad88`, `0687fc86` — confirmed by re-inspecting each run's own `02_writing/result.json`) |
+
+**After** (this pass, 4 fresh real pipeline runs — `standard` preset, 4,000-word target, corpus size 6, live `qwen3.5:9b`):
+
+| Run | Format | Words (target 4,000) | PDF pages | Length status | `draft_status` | Broken sections | Evidence-limited | QA score | Time |
+|---|---|---|---|---|---|---|---|---|---|
+| Remote work (pre-container-fix; **reproduced the bug below**) | IEEE | 2,870 | 4 | on_target | partial | Background, Conclusion | — | 3.0 | 23.0 min |
+| Remote work (post-fix, retry 1) | IEEE | 1,512 | 3 | short | partial | Discussion, Introduction, Literature Review | Limitations | 3.5 | 21.0 min |
+| Remote work (post-fix, retry 2) | IEEE | 1,826 | 3 | short | **failed** | Conclusion, Introduction, Literature Review | — | 3.5 | 19.0 min |
+| Social media & adolescent mental health (new topic) | Springer | 3,421 | 9 | on_target | partial | — | — | 3.5 | 22.9 min |
+| **Average, post-fix runs (3)** | | **2,253** | **5** | | | | | **3.5** | ~21 min |
+| *(reference)* Diagnostic baseline `5d362353`, plain `article` class | IEEE | 2,568 | 6 | — | complete (pre-fix logic) | n/a | n/a | 4.25 | n/a |
+
+Real page counts obtained via `pypdf.PdfReader` (already a project dependency) directly on the compiled `paper.pdf` of each run — not estimated. The Springer run's 9 pages for 3,421 words vs. the IEEE runs' 3-4 pages for 1,500-2,900 words reflects `llncs`'s narrower single-column layout and larger default margins compared to `IEEEtran`'s two-column conference layout — a real, expected per-template difference, not a bug.
+
+Honest reading of this table:
+- **Word count is up** (2,253-word post-fix average vs. 1,353-word pre-pass average — a real ~67% increase), even though 2 of the 3 post-fix runs were correctly, honestly labeled `"short"` rather than silently claimed complete — because real model variance this session (an unrelated, pre-existing citation/quotation audit check, and the bookend evidence-context audit) caused those two runs to resolve fewer sections. The length-planning fix makes the SYSTEM capable of reaching the target when evidence and generation succeed (proven by the Springer run reaching 3,421/4,000 — 86% of target, `on_target`), but it cannot manufacture words a stricter honest audit didn't validate.
+- **`draft_status` is more often `"partial"`/`"failed"` now, and that is the fix working, not a regression.** The bookend evidence-context replacement ("Introduction/Conclusion output violated its evidence context and was replaced") is a **pre-existing** behavior — confirmed present in **11 of the 14** historical run artifacts checked (`grep` on each run's own `02_writing/result.json`) — but the **old** `draft_status` computation never looked at it, so it silently reported `"complete"` in 3 of those 11 cases. The new rendered-text completeness check now reports the true state honestly. This is a real, quantified fix to exactly the bug the diagnostic set out to find (`a8e525ae`), not a new problem introduced by this pass.
+- **QA score is essentially flat** (3.5 average across the 4 new runs vs. 3.88 historical average) — expected, since QA scores actual validated/cited content, and these particular real runs happened to resolve fewer sections due to unrelated pre-existing model variance; it is not a claim that this pass improved or worsened underlying writing quality.
+- **PDF/`.tex` generation: 4/4 runs produced a real compiled PDF** via `tectonic`, in both IEEE and Springer document classes.
+
+### 🐛 12. Bugs Found and Fixed (during real validation, not anticipated in advance)
+- **Childless "container" tag → guaranteed-blank section.** The first post-fix validation run reproduced a **new**, previously-undiscovered structural bug: `define_tag_semantics.py` took `node_type` straight from the model's own judgment, independent of whether the tag actually had children (`child_ids`, fixed by the deterministic outline parser). A flat "Background" section (no subheadings, `child_ids: []`) the model classified as `"container"` rendered **permanently, deterministically blank** — no model luck could ever fix it, since a container's own content is intentionally never written (its children carry it — see D-020), and this one had no children. Root-cause fixed: any node classified `"container"` with empty `child_ids` is now forced to `"content"` (a real, writable leaf) in `tag_semantics.py`. 3 new regression tests added; re-running the exact same topic confirmed `Background` no longer appears in `broken_sections`. This is a direct, concrete example of the new completeness validator (§8) proving its worth — the old system would never have surfaced this at all.
+
+### ⚠️ 13. Honest Remaining Limitations
+- The bookend Introduction/Conclusion evidence-context audit replaced content fairly often on this local 9B model early in this pass (11 of 14 historical + new runs showed it) — this pass first made that failure **visible and correctly classified** (`partial`/`failed`, `broken_sections`), then a same-day follow-up (§16) found and fixed the actual dominant root cause (a citation range-shorthand the placeholder extractor couldn't parse), verified via 2 real same-topic re-runs with zero bookend replacement afterward. Not claimed as fully eliminated on a 9B local model's irreducible variance — see §16 for the honest scope of what was and wasn't verified.
+- Length planning gives the system the *capacity* to reach a requested target (demonstrated: 3,421/4,000 words in a clean run) but cannot guarantee it on every run — a section that fails its own audit for unrelated reasons (citation formatting, evidence-context violation) is still short, honestly, rather than padded to compensate.
+- The outline's section set is a small, fixed, evidence-safe list (not a per-question-generated one) — a deliberate, documented scope limitation (D-025), not a gap: a genuinely adaptive section *count* would require the writing graph to make an LLM-driven skip/include judgment, reintroducing the uncontrolled variability Fix 1 explicitly warns against.
+- `svjour3` (Springer's more "official" class) is not available in this environment's LaTeX toolchain; `llncs` is used instead — a real, standard Springer class, but documented as a substitution rather than silently presented as `svjour3`.
+
+### 🏆 14. Final Verdict
+**🟢 Substantially fixed, honestly measured.** The concrete, diagnosed root causes (hardcoded outline, unusable `target_words`, one-sided anti-padding prompts, blind `draft_status`) are fixed with real, targeted, minimal changes — not a rewrite. Real end-to-end testing (not just unit tests) found and fixed one genuinely new bug (the childless-container defect) and quantified a real, pre-existing problem the diagnostic could only show one example of (3 of 11 historical runs mislabeled `"complete"`). Word count is up ~67% on average; the system can reach a user-chosen length target when the underlying generation succeeds; short/evidence-limited sections are now told apart from broken ones; and IEEE/Springer format selection now genuinely changes the LaTeX template, not just the citation style. **Update (§16, same day):** the bookend replacement rate itself — initially reported here as an unreduced, pre-existing limitation — was investigated further and its dominant real cause (a citation range-shorthand bug) was found and fixed, verified via 2 real re-runs with zero bookend replacement afterward, versus 3/3 broken immediately before the fix on the identical topic.
+
+---
+
+## 1️⃣6️⃣ 16. Bookend Audit Root-Cause Investigation (2026-08-29, same-day follow-up)
+
+**Scope:** §13 above reported the bookend Introduction/Conclusion evidence-context audit's high replacement rate as a real, pre-existing, unreduced limitation. This follow-up investigated it directly instead of leaving it there. Full technical detail in `DECISIONS.md` D-027.
+
+### 🔬 Investigation method
+Rather than guess, the exact generation + audit was reproduced live against a real completed run's own persisted evidence (`diagnose_bookend.py`, a throwaway script loading that run's `tag_tree.json`/`tag_index.json`/`section_summaries/*.json` and calling `write_introduction()`/`write_conclusion()`/`audit_section()` exactly as `graph.py` does) — capturing the actual audit failure reason instead of only the pipeline's generic "violated its evidence context" log line.
+
+One environmental confound was found and cleared first: the GPU was at 7.9/8GB VRAM with a game (Valorant) also running, causing real Ollama `500` errors and a 53-second trivial-prompt response time. The user closed it; VRAM dropped to 301MiB before the diagnostic was retried.
+
+### 🎯 Root cause found
+The Introduction draft's own text contained `[P003-P006]` — a range shorthand for four papers — instead of `[@P003][@P004][@P005][@P006]`. The citation-placeholder regex (`\[@?P\d{3,}\]`, from D-021) requires the bracket to close immediately after the digits, so `[P003-P006]` matched **zero** placeholders. The draft's own `cited_paper_ids` field correctly listed all four papers, so the audit's placeholder-vs-`cited_paper_ids` equality check saw a mismatch and rejected the whole section — even though every paper was genuinely allowed and genuinely cited. Exact audit output captured:
+```
+out_of_scope_content: ['citation placeholders do not match cited_paper_ids']
+cited_paper_ids in draft: ['P002', 'P003', 'P004', 'P005', 'P006']
+allowed_paper_ids:       ['P002', 'P003', 'P004', 'P001', 'P005', 'P006']
+```
+Every cited ID was genuinely allowed — this was a parsing gap, not an evidence-boundary violation, the same class of false-positive bug as D-021 (a different malformed placeholder shape).
+
+### 🛠️ Fix
+- **Prompt:** `editorial_standard.md` (prepended to every generation/revision/audit prompt) now shows the correct multi-citation syntax and explicitly forbids range/list shorthand.
+- **Tolerant parsing (defense in depth):** `citation_formatter.py` now recognizes an optional range suffix and expands it to every covered paper ID, used by both the audit's extraction and the final rendering (which now renders every paper in the range, not just one).
+
+### 🧪 Tests
+7 new tests (`test_writing_citation_range_shorthand.py`): range expansion with/without `@`, mismatched-width and reversed/oversized ranges falling back safely (never guessed), a direct reproduction of the real audit failure now passing, and `format_citations` rendering every paper in a range. Full regression suite: **160 passed, 1 skipped, 0 regressions**; the live-model pipeline integration test re-run and passed (188s).
+
+### 📊 Real before/after (same topic, same settings, back-to-back real runs)
+| # | When | Bookend replaced? |
+|---|---|---|
+| 1 | Before fix | Yes (Background + Conclusion — also had the container bug, §12) |
+| 2 | Before fix | Yes (Introduction + Literature Review) |
+| 3 | Before fix | Yes (Introduction + Conclusion — both, `draft_status: failed`) |
+| 4 | **After fix** | **No** — 0 bookend replacements (`Discussion` broken instead, an unrelated quotation-detection check) |
+| 5 | **After fix** | **No** — 0 bookend replacements (`Limitations` broken instead, unrelated + correctly not marked evidence-limited since it also failed a real correctness check) |
+
+**0/3 clean before the fix → 2/2 clean after**, on the identical research question, format, and length preset. This is a real, quantified, same-topic result — not an inference from the mechanism alone.
+
+### ⚠️ Honest scope
+- n=2 post-fix confirmation runs is good evidence for the specific mechanism found and fixed, not proof the bookend audit will never fail again — a different, unrelated pre-existing check (paraphrase/quotation detection) still failed a different section in both post-fix runs, and 9B local model variance is real and ongoing.
+- This did not chase every possible cause of section-audit failures generally — only the one specifically reproduced, diagnosed, and confirmed to be the dominant cause of *bookend* replacement.
+
+### 🏆 Verdict
+**🟢 Root cause found, fixed, and verified with real before/after data** — turning §13's "we made this visible but didn't reduce it" limitation into a genuine, measured improvement for the specific failure mode that was actually driving the bookend replacement rate.

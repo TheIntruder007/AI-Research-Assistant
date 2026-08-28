@@ -58,6 +58,14 @@ class DraftMetadata(BaseModel):
     errors: list[str] = Field(default_factory=list)
     papers_cited: int = 0
     sections_written: int = 0
+    total_sections: int = 0
+    failed_sections: int = 0
+    # Explicit completeness classification (see DECISIONS.md D-019): a
+    # pipeline consumer must never have to infer completeness from the
+    # presence/absence of warnings — it is stated directly. "complete" means
+    # every outline section resolved with no unrecovered failures; "partial"
+    # means the draft is usable but at least one section did not.
+    draft_status: Literal["complete", "partial"] = "complete"
 
 
 class WritingResult(BaseModel):

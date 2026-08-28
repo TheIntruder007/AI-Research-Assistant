@@ -41,6 +41,8 @@ class PaperMetadata(BaseModel):
     source: str = ""
     has_abstract: bool = False
     abstract: str | None = None
+    relevance_score: float | None = None
+    relevance_reason: str | None = None
 
 
 class ResearchGap(BaseModel):

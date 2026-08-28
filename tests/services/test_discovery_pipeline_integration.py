@@ -65,3 +65,14 @@ def test_discovery_pipeline_end_to_end():
     # each must carry evidence text, not just an assertion.
     for gap in result.research_gaps:
         assert gap.evidence
+    # Relevance gate (DECISIONS.md D-018): every paper that made it into the
+    # real, live-searched corpus must have cleared the hard relevance
+    # threshold — no paper should be present that the screening step itself
+    # would have rejected as off-topic.
+    for paper in result.selected_papers:
+        if paper.relevance_score is not None:
+            assert paper.relevance_score >= 0.12, (
+                f"Paper {paper.id!r} ({paper.title!r}) has relevance_score "
+                f"{paper.relevance_score}, below the hard-reject threshold — "
+                "it should never have reached the selected corpus."
+            )

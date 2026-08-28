@@ -11,6 +11,32 @@ class StrictModel(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
 
+def _normalize_paper_id(value: object) -> object:
+    """Strip citation-placeholder decoration a model may echo into a
+    structured cited_paper_ids field instead of the bare paper ID.
+
+    Root cause (DECISIONS.md D-021): prose citations are written as
+    `[@P001]` placeholders, and models writing this schema sometimes copy
+    that decorated form (`"@P001"`, or occasionally `"[@P001]"`) into the
+    separate `cited_paper_ids` list instead of the bare ID (`"P001"`) the
+    rest of the pipeline expects. Every downstream comparison — against
+    `allowed_paper_ids`, against the placeholder IDs extracted from prose —
+    is a set-equality check, so an undecorated vs. decorated ID mismatch
+    makes an otherwise fully valid, in-scope citation look like a forbidden
+    one. Normalizing at the schema boundary makes every comparison
+    deterministic regardless of which decorated form a model happens to use.
+    """
+    if not isinstance(value, str):
+        return value
+    return value.strip().strip("[]").lstrip("@").strip()
+
+
+def _normalize_paper_id_list(values: object) -> object:
+    if not isinstance(values, list):
+        return values
+    return [_normalize_paper_id(item) for item in values]
+
+
 CitationStyle: TypeAlias = Literal[
     "elsevier-harvard",
     "apa-7",
@@ -297,6 +323,11 @@ class SectionDraft(StrictModel):
     used_point_ids: list[str]
     summary: str | None = None
 
+    @field_validator("cited_paper_ids", mode="before")
+    @classmethod
+    def _normalize_cited_paper_ids(cls, value: object) -> object:
+        return _normalize_paper_id_list(value)
+
 
 class SectionDraftContent(StrictModel):
     """Model-written fields before deterministic tag ID attachment."""
@@ -305,6 +336,11 @@ class SectionDraftContent(StrictModel):
     cited_paper_ids: list[str]
     used_point_ids: list[str]
     summary: str | None = None
+
+    @field_validator("cited_paper_ids", mode="before")
+    @classmethod
+    def _normalize_cited_paper_ids(cls, value: object) -> object:
+        return _normalize_paper_id_list(value)
 
 
 class SectionAudit(StrictModel):

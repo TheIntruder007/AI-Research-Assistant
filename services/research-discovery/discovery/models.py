@@ -26,6 +26,9 @@ class Paper:
     pmcid: str | None = None      # PubMed Central ID, e.g. "PMC1234567" (full-text XML route)
     future_text: str | None = None  # extracted Discussion/Limitations/Future-research text
     role: str = "corpus"          # "corpus" or "verification" (found while checking candidates)
+    relevance_score: float = 1.0  # topical overlap with the research question; see relevance.py
+    relevance_decision: str = "accepted"  # "accepted" | "rejected" — see relevance.py
+    relevance_reason: str = ""
 
     @property
     def link(self) -> str | None:
@@ -48,6 +51,9 @@ class Paper:
             "has_abstract": bool(self.abstract),
             "has_fulltext": bool(self.future_text),
             "role": self.role,
+            "relevance_score": self.relevance_score,
+            "relevance_decision": self.relevance_decision,
+            "relevance_reason": self.relevance_reason,
         }
 
 

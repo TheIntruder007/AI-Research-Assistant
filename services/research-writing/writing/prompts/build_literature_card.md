@@ -35,6 +35,15 @@ causation, a null result into proof of no effect, or author speculation into a f
 Before returning, verify that another writer could compare each point with other studies
 without silently broadening its population, method, outcome, certainty, or scope.
 
+### If a previous attempt is supplied
+
+When the input includes `previous_attempt_errors`, a prior attempt at this exact card failed
+deterministic validation for those specific reasons. Fix each one directly rather than
+regenerating from scratch and repeating the same mistake — most commonly this means a point
+was assigned to both a tag and one of its ancestors (see rule 2 above: assign each point to
+only its single deepest matching tag, never duplicate it upward), or a tag/point ID did not
+match the required shape.
+
 ### Output shape (do not confuse these two dictionaries)
 
 `points` is keyed by POINT ID (each point's own `point_id`, e.g. `"P003-POINT-01"`).

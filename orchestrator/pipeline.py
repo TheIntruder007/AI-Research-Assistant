@@ -25,6 +25,7 @@ from shared.contracts.pipeline_contract import (  # noqa: E402
 from shared.contracts.qa_contract import QualityAssuranceRequest  # noqa: E402
 from shared.contracts.verification_contract import VerificationRequest  # noqa: E402
 from shared.contracts.writing_contract import WritingRequest  # noqa: E402
+from shared.utilities import latex_export  # noqa: E402
 
 
 def _load_service(name: str, relative_path: str):
@@ -232,6 +233,17 @@ async def run_pipeline(
     (final_dir / "references.md").write_text(
         "\n".join(f"- {entry}" for entry in qa_result.final_references) + "\n", encoding="utf-8",
     )
+
+    # LaTeX source is always generated (deterministic, no LLM call — see
+    # shared/utilities/latex_export.py). PDF compilation is attempted only
+    # if a LaTeX toolchain (pdflatex or tectonic) is actually available on
+    # this machine; never claimed as produced otherwise.
+    tex_path = final_dir / "paper.tex"
+    tex_path.write_text(
+        latex_export.markdown_to_latex(qa_result.final_draft_markdown, title=request.research_question),
+        encoding="utf-8",
+    )
+    latex_export.compile_pdf(tex_path, final_dir)
 
     timings = StageTimings(
         discovery_seconds=round(t1 - t0, 1), writing_seconds=round(t2 - t1, 1),

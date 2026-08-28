@@ -38,8 +38,21 @@ DEFAULT_OUTPUT_ROOT = Path(__file__).resolve().parents[2] / "outputs" / ".writin
 # DECISIONS.md D-009), and the graph's default revision/audit rounds would
 # multiply an already-expensive per-call cost many times over. Revisit once
 # a faster model/machine is available — see DECISIONS.md D-010.
+#
+# max_section_revision_rounds=1 (not 0, see DECISIONS.md D-020): with 0
+# rounds, write_section_with_revisions() returns normally (no exception) the
+# instant its FIRST audit fails — the outer max_section_attempts retry only
+# triggers on an exception, so it never engages for an audit failure. With
+# revisions fully disabled, a single audit issue (e.g. one citation
+# placeholder not matching cited_paper_ids) permanently failed a section
+# with zero recovery attempts of any kind. A real stress-test run showed
+# this as the dominant failure mode (4 of 5 sections failing on the exact
+# same audit-detectable, already-correctable issue). One bounded revision
+# round — using the already-tested audit-driven revise_section() path, only
+# for sections that actually fail their first audit — is a small, targeted
+# cost for a large reliability gain.
 FAST_REVIEW_CONFIG = ReviewConfig(
-    max_section_revision_rounds=0,
+    max_section_revision_rounds=1,
     # Empty-content sections are as useless as a failed card (see the
     # SectionDraft min_length fix in writing/schemas.py) — one retry is
     # worth the extra time given the alternative is a blank section.
@@ -134,6 +147,12 @@ async def run_writing(request: WritingRequest,
         reference_candidates = refs.get("references", [])
 
     total_sections = sum(1 for line in outline.splitlines() if line.startswith("#"))
+    failed_sections = len(result.failed_tag_ids)
+    # Explicit completeness classification (DECISIONS.md D-019): "complete"
+    # requires both the graph's own success signal (every section resolved,
+    # audit passed) AND that no failed section was actually detected — the
+    # two should always agree, but never silently trust one without the other.
+    draft_status = "complete" if (result.succeeded and failed_sections == 0) else "partial"
     metadata = DraftMetadata(
         model_name=llm_provider.DEFAULT_MODEL,
         run_id=run_id,
@@ -141,7 +160,10 @@ async def run_writing(request: WritingRequest,
         warnings=result.warnings,
         errors=result.errors,
         papers_cited=len(reference_candidates),
-        sections_written=max(total_sections - len(result.failed_tag_ids), 0),
+        sections_written=max(total_sections - failed_sections, 0),
+        total_sections=total_sections,
+        failed_sections=failed_sections,
+        draft_status=draft_status,
     )
 
     writing_result = WritingResult(

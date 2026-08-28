@@ -13,6 +13,7 @@ from . import fulltext
 from .analysis import (analyze_gaps, economy_model, generate_queries,
                        mine_future_research, model)
 from .models import Paper, PipelineError, normalize_title
+from .relevance import build_topic_profile, screen_papers
 from .sources import SOURCES, openalex
 
 FULLTEXT_MAX_ATTEMPTS = 40   # papers we try to fetch full text for
@@ -89,7 +90,14 @@ def rank(papers: list[Paper], per_source_limit: int) -> list[Paper]:
         if p.year:
             s += max(0.0, min(1.0, (p.year - (this_year - 15)) / 15)) * 2.0
         s += (1.0 - p.relevance_rank / max(per_source_limit, 1)) * 4.0
-        return s
+        # Topical relevance to the actual research question (relevance.py /
+        # DECISIONS.md D-018) is applied as a MULTIPLIER, not an additive
+        # bonus. An additive term can still be out-weighed by raw citations
+        # and recency — a highly-cited, recent paper that only weakly
+        # overlaps the topic would still out-rank a clearly on-topic one.
+        # Multiplying means a paper's citation/recency/abstract "quality"
+        # only counts for as much as it is actually relevant.
+        return s * p.relevance_score
 
     return sorted(papers, key=score, reverse=True)
 
@@ -189,7 +197,8 @@ def _models(quality: str) -> tuple[str, str]:
 async def run_pipeline(question: str, source_keys: list[str],
                        per_source: int, corpus_size: int,
                        fulltext_enabled: bool = True,
-                       quality: str = "balanced") -> AsyncIterator[dict]:
+                       quality: str = "balanced",
+                       keywords: list[str] | None = None) -> AsyncIterator[dict]:
     selected = [(k, *SOURCES[k]) for k in source_keys if k in SOURCES]
     if not selected:
         raise PipelineError("Select at least one literature source.")
@@ -228,14 +237,40 @@ async def run_pipeline(question: str, source_keys: list[str],
                             "or enabling more sources.")
 
     unique = dedupe(all_papers)
-    corpus = rank(unique, per_source)[:corpus_size]
+
+    # Hard relevance gate (DECISIONS.md D-018): screen every deduped candidate
+    # against the research question + LLM-generated keyword query + any
+    # user-supplied keywords *before* ranking. Without this, ranking alone
+    # (citations/recency/abstract presence/search-engine position) can let a
+    # topically unrelated paper into the final corpus if it merely looks
+    # "strong" by those other signals — the exact failure this closes.
+    profile = build_topic_profile(question, queries.get("keyword", ""), keywords)
+    accepted, rejected = screen_papers(unique, profile)
+    if rejected:
+        examples = sorted(rejected, key=lambda p: p.relevance_score)[:5]
+        yield {"type": "relevance_filter", "accepted": len(accepted), "rejected": len(rejected),
+               "rejected_examples": [
+                   {"title": p.title, "relevance_score": p.relevance_score, "reason": p.relevance_reason}
+                   for p in examples
+               ]}
+        yield {"type": "status", "stage": "search", "state": "running",
+               "message": f"Relevance screening rejected {len(rejected)} of {len(unique)} "
+                          "unique paper(s) as off-topic."}
+    if not accepted:
+        raise PipelineError(
+            "No paper in the search results was judged relevant to the research question. "
+            "Try rephrasing the question or providing more specific keywords."
+        )
+
+    corpus = rank(accepted, per_source)[:corpus_size]
     for i, p in enumerate(corpus, start=1):
         p.id = i
     yield {"type": "status", "stage": "search", "state": "done",
            "message": f"Found {len(all_papers)} papers → {len(unique)} unique → "
-                      f"analyzing top {len(corpus)}"}
+                      f"{len(accepted)} passed relevance screening → analyzing top {len(corpus)}"}
     yield {"type": "corpus", "total_found": len(all_papers), "unique": len(unique),
-           "analyzed": len(corpus), "papers": [p.to_client_dict() for p in corpus]}
+           "relevant": len(accepted), "analyzed": len(corpus),
+           "papers": [p.to_client_dict() for p in corpus]}
 
     candidates: list[dict] = []
     verification_papers: list[Paper] = []

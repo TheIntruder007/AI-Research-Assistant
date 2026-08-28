@@ -37,6 +37,9 @@ article prose.
   the argument or creating a necessary transition.
 - Place citations immediately after the claim they support. Group papers when they support
   the same inference, but never use a citation as a substitute for explaining the evidence.
+- In prose, cite only with the exact `[@P001]` placeholder form. In `cited_paper_ids`, use the
+  bare paper ID only — `"P001"`, never `"@P001"` or `"[@P001]"`. The `@` and brackets belong to
+  the prose placeholder syntax only, never to a `cited_paper_ids` list entry.
 
 Before returning, silently check: Is each major claim traceable? Is the strongest contrary
 evidence represented? Are confidence and scope calibrated? Does every paragraph move the

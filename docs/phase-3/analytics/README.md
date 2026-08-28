@@ -1,0 +1,1 @@
+Real analytics for this phase are embedded directly in `../PHASE_3_NOTES.md` (sections marked 📊/📈/🎯/⚡), sourced from real pipeline runs and the project's top-level `analytics_and_results.md`. No numbers in this project are fabricated or estimated without being explicitly labeled as such.

@@ -5,7 +5,16 @@ from dataclasses import dataclass
 
 from writing.schemas import CitationInfo, CitationStyle, PaperMetadata
 
-_CITATION = re.compile(r"\[@(?P<paper_id>P\d{3,})\]")
+# The prompts ask for `[@P001]`, but a model occasionally drops the "@"
+# (`[P001]`) in prose while still correctly restricting itself to allowed
+# papers (see DECISIONS.md D-021) — the mirror image of the cited_paper_ids
+# "@P001" mistake schemas.py normalizes. "@" is optional here so a bare
+# `[P001]` still resolves as the same citation instead of silently vanishing
+# from extraction (which would otherwise make a fully valid citation look
+# unsupported and, worse, could leave an un-replaced literal `[P001]` in the
+# rendered output). "P" + 3+ digits is a paper-ID-specific pattern, so this
+# does not risk matching unrelated bracketed text.
+_CITATION = re.compile(r"\[@?(?P<paper_id>P\d{3,})\]")
 _AUTHOR_YEAR = re.compile(
     r"^\([^(),]+(?:\s+(?:and|&)\s+[^(),]+|\s+et\s+al\.)?,\s*"
     r"(?:\d{4}[a-z]?|n\.d\.)\)$"

@@ -1,0 +1,1 @@
+See the Mermaid diagrams embedded directly in `../PHASE_3_NOTES.md` (GitHub renders Mermaid natively). Diagrams are kept inline rather than duplicated as separate files to avoid drift between a diagram and the text explaining it.

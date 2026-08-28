@@ -26,25 +26,30 @@ async def build_literature_card(
     tag_definitions: list[TagDefinition],
     document: PaperDocument,
     model: LanguageModel,
+    previous_errors: list[str] | None = None,
 ) -> LiteratureCard:
-    """Read exactly one registered paper and extract review-scoped evidence."""
+    """Read exactly one registered paper and extract review-scoped evidence.
+
+    previous_errors: when a prior attempt for this same paper failed
+    deterministic validation, its exact error messages are passed back in so
+    the model can correct them directly (see DECISIONS.md D-019) instead of
+    the retry being an identical, blind repeat of the same request."""
 
     system_prompt = load_prompt("build_literature_card.md")
     paper_text = Path(document.source_path).read_text(encoding="utf-8-sig")
-    user_prompt = json.dumps(
-        {
-            "review_question": review_question,
-            "paper_id": document.paper_id,
-            "evidence_depth": document.evidence_depth,
-            "known_metadata": document.metadata.model_dump(mode="json"),
-            "tag_definitions": [
-                definition.model_dump(mode="json") for definition in tag_definitions
-            ],
-            "paper_markdown": paper_text,
-        },
-        ensure_ascii=False,
-        indent=2,
-    )
+    payload: dict[str, object] = {
+        "review_question": review_question,
+        "paper_id": document.paper_id,
+        "evidence_depth": document.evidence_depth,
+        "known_metadata": document.metadata.model_dump(mode="json"),
+        "tag_definitions": [
+            definition.model_dump(mode="json") for definition in tag_definitions
+        ],
+        "paper_markdown": paper_text,
+    }
+    if previous_errors:
+        payload["previous_attempt_errors"] = previous_errors
+    user_prompt = json.dumps(payload, ensure_ascii=False, indent=2)
     content = await generate_validated(
         model,
         system_prompt=system_prompt,

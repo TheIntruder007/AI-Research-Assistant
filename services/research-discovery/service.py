@@ -32,6 +32,7 @@ def _paper_metadata(p: dict) -> PaperMetadata:
         year=p["year"], venue=p["venue"], citations=p["citations"], doi=p.get("doi"),
         url=p.get("link"), source=p["source"], has_abstract=p["has_abstract"],
         abstract=p.get("abstract"),
+        relevance_score=p.get("relevance_score"), relevance_reason=p.get("relevance_reason"),
     )
 
 
@@ -51,7 +52,8 @@ async def run_discovery(request: DiscoveryRequest,
 
     async for event in run_pipeline(request.research_question, source_keys,
                                     PER_SOURCE_RESULTS, request.corpus_size,
-                                    fulltext_enabled=True, quality="balanced"):
+                                    fulltext_enabled=True, quality="balanced",
+                                    keywords=request.keywords):
         if event["type"] == "queries":
             queries = event["queries"]
         elif event["type"] == "corpus":

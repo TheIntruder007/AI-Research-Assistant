@@ -43,7 +43,12 @@ async def main(question: str) -> None:
             print(f"Total wall time: {elapsed:.1f}s")
             print(f"Timings: {result.timings.model_dump()}")
             print(f"Papers selected: {len(result.discovery.selected_papers)}")
-            print(f"Sections written: {result.writing.draft_metadata.sections_written}")
+            for p in result.discovery.selected_papers:
+                print(f"  [{p.id}] relevance={p.relevance_score} — {p.title!r}")
+            print(f"Draft status: {result.writing.draft_metadata.draft_status} "
+                  f"({result.writing.draft_metadata.sections_written}/"
+                  f"{result.writing.draft_metadata.total_sections} sections, "
+                  f"{result.writing.draft_metadata.failed_sections} failed)")
             print(f"Writing warnings: {result.writing.draft_metadata.warnings}")
             print(f"Writing errors: {result.writing.draft_metadata.errors}")
             print(

@@ -25,3 +25,29 @@ For each tag provide:
 
 Do not add domain facts absent from the review question and outline. The definitions should
 make later evidence assignment reproducible and minimize overlap between branches.
+
+### Ancestor/descendant ownership (not just sibling separation)
+
+Every tag with children (including `TAG-ROOT`) must be written so its `include_when` does
+NOT also cover what a child tag already owns. Restating the full review question as an
+ancestor's `include_when` is wrong even when every piece of evidence is technically "relevant
+to the question" — that is true of every tag in the tree by construction, so it gives no
+assignment guidance and causes the same evidence to be claimed by both a parent and a child.
+
+For every tag that has children:
+
+- Write its `include_when` to cover ONLY evidence that is relevant to the parent's scope but
+  does not fit any single child's more specific scope — genuine cross-cutting synthesis,
+  definitional framing, or content spanning multiple children at once. If you cannot describe
+  such content concretely, `include_when` may be a short list focused on that synthesis role
+  rather than a restatement of the overall topic.
+- Add at least one `exclude_when` entry per child stating that content matching that child's
+  scope belongs to the child, not this tag (e.g. "Findings specific to the Literature Review's
+  scope belong there, not here").
+
+For a leaf/content tag, `exclude_when` must distinguish it from its siblings AND explicitly
+state that anything broader belonging to an ancestor's synthesis role (rather than this tag's
+specific domain) belongs to that ancestor instead — ownership is a two-way boundary.
+
+The deepest matching tag always owns a given piece of evidence; an ancestor may only claim
+evidence when no child's scope fits it at all.

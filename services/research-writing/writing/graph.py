@@ -224,8 +224,14 @@ def build_review_graph(
                         state["review_question"], definitions, document, model, store
                     )
                 else:
+                    # Targeted retry (DECISIONS.md D-019): pass the previous
+                    # attempt's validation errors back in so the model fixes
+                    # the specific mistake (most commonly a point duplicated
+                    # across an ancestor and descendant tag) instead of this
+                    # being an identical, blind repeat of the same request.
                     card = await build_literature_card(
-                        state["review_question"], definitions, document, model
+                        state["review_question"], definitions, document, model,
+                        previous_errors=attempt_errors or None,
                     )
                     store.write_json(
                         f"literature_cards/{document.paper_id}.json", _dump(card)
@@ -335,8 +341,19 @@ def build_review_graph(
 
             if definition.node_type == "container":
                 summary_values = list(child_summaries.values())
+                # A container tag has no prose of its own (assemble_review()
+                # renders only its heading; its children carry the actual
+                # content) — but SectionDraft.content requires min_length=1
+                # (see writing/schemas.py). A literal "" here is an invalid
+                # state that crashes deterministically on EVERY run with a
+                # container tag, regardless of model behavior (see
+                # DECISIONS.md D-020) — not a model-reliability issue at all,
+                # which is why retrying it could never help. A single space
+                # satisfies the schema while still rendering as empty:
+                # assemble_review() checks `draft.content.strip()` before
+                # emitting any body text for a section.
                 draft = SectionDraft(
-                    tag_id=tag_id, content="", cited_paper_ids=[], used_point_ids=[]
+                    tag_id=tag_id, content=" ", cited_paper_ids=[], used_point_ids=[]
                 )
                 audit = SectionAudit(
                     tag_id=tag_id,

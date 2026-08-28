@@ -121,6 +121,12 @@ def test_run_pipeline_produces_result_and_persists_artifacts(tmp_path):
     assert (Path(result.run_directory) / "01_discovery" / "result.json").exists()
     assert (Path(result.run_directory) / "final" / "draft.md").exists()
     assert (Path(result.run_directory) / "final" / "draft.md").read_text(encoding="utf-8") == "draft body [1]."
+    # LaTeX source is always generated (deterministic — see D-022); PDF
+    # compilation is opportunistic and not asserted here since it depends
+    # on a LaTeX toolchain being present on the machine running the test.
+    tex_path = Path(result.run_directory) / "final" / "paper.tex"
+    assert tex_path.exists()
+    assert tex_path.read_text(encoding="utf-8").startswith("\\documentclass")
 
     metadata = json.loads((Path(result.run_directory) / "metadata.json").read_text(encoding="utf-8"))
     assert metadata["overall_quality_score"] == 5.0

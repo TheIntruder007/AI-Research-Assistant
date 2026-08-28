@@ -1,0 +1,149 @@
+"""Terminal presentation layer: translates the orchestrator's real progress
+events into a clean, live, section-based display. Never fabricates progress
+— every line shown here is derived from an actual event the pipeline emitted.
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+
+from rich.console import Console, Group
+from rich.panel import Panel
+from rich.table import Table
+from rich.text import Text
+
+from researchgenie.theme import ACCENT, ERROR, MUTED, OK, SECONDARY, WARN
+
+# Maps the orchestrator's internal stage keys to display titles, in the
+# fixed order the pipeline actually runs them.
+_STAGE_TITLES = {
+    "discovery": "Research Discovery",
+    "writing": "Research Writing",
+    "verification": "Citation Verification",
+    "quality_assurance": "Quality Assessment",
+}
+_STAGE_ORDER = ["discovery", "writing", "verification", "quality_assurance"]
+
+_STATUS_GLYPH = {
+    "done": ("✓", OK),
+    "running": ("◐", ACCENT),
+    "warning": ("!", WARN),
+    "failed": ("✗", ERROR),
+    "pending": ("○", MUTED),
+}
+
+
+@dataclass
+class _StageLog:
+    lines: list[tuple[str, str]] = field(default_factory=list)  # (message, status)
+    status: str = "pending"
+    had_warning: bool = False  # tracks a warning/failed line seen anywhere in this stage
+
+    def add(self, message: str, status: str) -> None:
+        # Collapse consecutive duplicate messages (e.g. repeated "running"
+        # pings for the same underlying step) rather than spamming the log.
+        if self.lines and self.lines[-1][0] == message:
+            self.lines[-1] = (message, status)
+        else:
+            self.lines.append((message, status))
+        if status in ("warning", "failed"):
+            self.had_warning = True
+
+
+class PipelineView:
+    """Consumes orchestrator progress events and renders a live tree of
+    stage → message lines, each with a real status glyph."""
+
+    def __init__(self) -> None:
+        self.stages: dict[str, _StageLog] = {key: _StageLog() for key in _STAGE_ORDER}
+
+    def ingest(self, event: dict) -> None:
+        stage = event.get("stage")
+        if stage not in self.stages:
+            return
+        status = event.get("status", "running")
+        message = event.get("message", "")
+        log = self.stages[stage]
+        log.add(message, status)
+        if status == "failed":
+            log.status = "failed"
+        elif status == "done":
+            # A stage can report its own overall "done" even after one of
+            # its own messages was a warning/failure (e.g. Writing finishes
+            # with some sections unresolved) — never let that overwrite the
+            # honest degraded state with a plain, all-clear "done".
+            log.status = "warning" if log.had_warning else "done"
+        elif log.status == "pending":
+            log.status = "running"
+
+    def render(self) -> Group:
+        blocks = []
+        for key in _STAGE_ORDER:
+            log = self.stages[key]
+            glyph, color = _STATUS_GLYPH[log.status]
+            title = Text(f"{glyph} {_STAGE_TITLES[key]}", style=f"bold {color}")
+            body = Table.grid(padding=(0, 1))
+            body.add_column()
+            if not log.lines:
+                body.add_row(Text("○ waiting", style=MUTED))
+            for message, status in log.lines[-6:]:  # keep the visible log compact
+                line_glyph, line_color = _STATUS_GLYPH.get(status, _STATUS_GLYPH["running"])
+                body.add_row(Text(f"{line_glyph} {message}", style=line_color))
+            blocks.append(Panel(body, title=title, border_style=color, padding=(0, 1)))
+        return Group(*blocks)
+
+
+def render_banner(console: Console) -> None:
+    console.print(Panel.fit(
+        Text.from_markup(
+            "[bold]✦ RESEARCHGENIE[/bold]\n"
+            f"[{MUTED}]Local AI Research Assistant[/{MUTED}]"
+        ),
+        border_style=ACCENT, padding=(1, 4),
+    ))
+
+
+def render_summary(console: Console, *, question: str, corpus_size: int,
+                   target_format: str, provider_label: str) -> None:
+    table = Table.grid(padding=(0, 2))
+    table.add_column(style=f"bold {MUTED}")
+    table.add_column()
+    table.add_row("Research Topic", question)
+    table.add_row("Papers", str(corpus_size))
+    table.add_row("Format", target_format)
+    table.add_row("AI Engine", provider_label)
+    console.print(Panel(table, title="Research Summary", border_style=SECONDARY))
+
+
+def render_completion(console: Console, *, run_directory: str, overall_score: float,
+                      artifacts: list[str]) -> None:
+    body = Table.grid(padding=(0, 1))
+    body.add_column()
+    body.add_row(Text(f"Overall quality score: {overall_score:.1f}/5.0", style=ACCENT))
+    body.add_row("")
+    body.add_row(Text("Output folder:", style=f"bold {MUTED}"))
+    body.add_row(Text(run_directory, style=ACCENT))
+    body.add_row("")
+    for artifact in artifacts:
+        body.add_row(Text(f"✓ {artifact}", style=OK))
+    console.print(Panel.fit(
+        Group(Text("✓ RESEARCH COMPLETE", style=f"bold {OK}"), Text(""), body),
+        border_style=OK, padding=(1, 3),
+    ))
+
+
+def render_failure(console: Console, *, stage: str, reason: str, run_directory: str | None) -> None:
+    body = Table.grid(padding=(0, 1))
+    body.add_column()
+    body.add_row(Text(f"Stage: {_STAGE_TITLES.get(stage, stage)}", style=MUTED))
+    body.add_row("")
+    body.add_row(Text("Reason:", style=f"bold {MUTED}"))
+    body.add_row(Text(reason, style=ERROR))
+    if run_directory:
+        body.add_row("")
+        body.add_row(Text("Partial work has been preserved at:", style=MUTED))
+        body.add_row(Text(run_directory, style=ACCENT))
+    console.print(Panel.fit(
+        Group(Text("✗ RESEARCH COULD NOT COMPLETE", style=f"bold {ERROR}"), Text(""), body),
+        border_style=ERROR, padding=(1, 3),
+    ))

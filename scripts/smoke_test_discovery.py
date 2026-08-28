@@ -35,6 +35,14 @@ async def main(question: str) -> None:
             print(f"Research gaps found: {len(result.research_gaps)}")
             print(f"Novelty confidence: {result.novelty_analysis.confidence}")
             print(f"\nField overview:\n{result.field_overview}")
+            print("\n=== SELECTED PAPER RELEVANCE (DECISIONS.md D-018) ===")
+            for p in result.selected_papers:
+                print(f"  [{p.id}] score={p.relevance_score} — {p.title!r}")
+        elif event["type"] == "relevance_filter":
+            print(f"\n=== RELEVANCE SCREENING === accepted={event['accepted']} "
+                  f"rejected={event['rejected']}")
+            for ex in event["rejected_examples"]:
+                print(f"  REJECTED (score={ex['relevance_score']}): {ex['title']!r} — {ex['reason']}")
         else:
             label = event.get("message") or event.get("type")
             print(f"[{event['type']}] {label}")

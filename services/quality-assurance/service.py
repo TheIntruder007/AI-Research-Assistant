@@ -154,11 +154,23 @@ def compute_scores(
 
     claim_source_alignment = 5.0 if not unsupported_claims else 3.0
 
-    process_control = 5.0
-    if writing.draft_metadata.errors:
+    # Prefer the writing service's own explicit completeness classification
+    # (DECISIONS.md D-019) over inferring severity from warning/error text —
+    # a "partial" draft is scored by how much of it actually failed, not by
+    # merely whether any warning exists at all.
+    total = writing.draft_metadata.total_sections
+    failed = writing.draft_metadata.failed_sections
+    if writing.draft_metadata.draft_status == "complete" and not writing.draft_metadata.errors:
+        process_control = 5.0
+    elif writing.draft_metadata.errors:
         process_control = 2.0
+    elif total > 0:
+        failed_fraction = failed / total
+        process_control = round(max(2.0, 5.0 - failed_fraction * 3.0), 2)
     elif writing.draft_metadata.warnings:
         process_control = 4.0
+    else:
+        process_control = 5.0
 
     literature_coverage = 5.0 if not missing_sections else 3.0
 

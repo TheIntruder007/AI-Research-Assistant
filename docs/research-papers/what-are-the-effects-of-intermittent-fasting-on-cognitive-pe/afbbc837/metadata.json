@@ -1,0 +1,11 @@
+{
+  "run_id": "afbbc837e95b44e8aa1e7046ce202d7b",
+  "research_question": "What are the effects of intermittent fasting on cognitive performance?",
+  "timings": {
+    "discovery_seconds": 314.9,
+    "writing_seconds": 703.4,
+    "verification_seconds": 0.4,
+    "quality_assurance_seconds": 0.0
+  },
+  "overall_quality_score": 3.5
+}

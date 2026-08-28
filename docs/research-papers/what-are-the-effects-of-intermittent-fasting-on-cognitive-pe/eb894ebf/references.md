@@ -1,0 +1,6 @@
+- [1] J. Frank, A. Gupta, and V. Osadchiy, "Brain–Gut–Microbiome Interactions and Intermittent Fasting in Obesity," *Nutrients*, 2021, doi: 10.3390/nu13020584.
+- [2] T. Murphy, G. P. Dias, and S. Thuret, "Effects of Diet on Brain Plasticity in Animal and Human Studies: Mind the Gap," *Neural Plasticity*, 2014, doi: 10.1155/2014/563160.
+- [3] C. H. Hillman, M. B. Pontifex, and D. M. Castelli, "Effects of the FITKids Randomized Controlled Trial on Executive Control and Brain Function," *PEDIATRICS*, 2014, doi: 10.1542/peds.2013-3219.
+- [4] P. Eggenberger, M. Wolf, and M. Schumann, "Exergame and Balance Training Modulate Prefrontal Brain Activity during Walking and Enhance Executive Function in Older Adults," *Frontiers in Aging Neuroscience*, 2016, doi: 10.3389/fnagi.2016.00066.
+- [5] A. R. Vasconcelos, L. Yshii, and T. A. Viel, "Intermittent fasting attenuates lipopolysaccharide-induced neuroinflammation and memory impairment," *Journal of Neuroinflammation*, 2014, doi: 10.1186/1742-2094-11-85.
+- [6] C. Valls‐Pedret, A. Sala‐Vila, and M. Serra‐Mir, "Mediterranean Diet and Age-Related Cognitive Decline," *JAMA Internal Medicine*, 2015, doi: 10.1001/jamainternmed.2015.1668.

@@ -1,0 +1,6 @@
+- [1] B. Wang, Y. Liu, and J. Qian, "Achieving Effective Remote Working During the COVID‐19 Pandemic: A Work Design Perspective," *Applied Psychology*, 2020, doi: 10.1111/apps.12290.
+- [2] J. M. Barrero, N. Bloom, and S. J. Davis, "Why Working from Home Will Stick," *National Bureau of Economic Research*, 2021, doi: 10.3386/w28731.
+- [3] C. Rott, K. Fettah, and I. Pavlidis, "Proceedings of the 2024 CHI Conference on Human Factors in Computing Systems," , 2024, doi: 10.1145/3613904.
+- [4] B. Agyapong, G. Obuobi-Donkor, and L. Burback, "Stress, Burnout, Anxiety and Depression among Teachers: A Scoping Review," *International Journal of Environmental Research and Public Health*, 2022, doi: 10.3390/ijerph191710706.
+- [5] D. H. Halat, A. Soltani, and R. Dalli, "Understanding and Fostering Mental Health and Well-Being among University Faculty: A Narrative Review," *Journal of Clinical Medicine*, 2023, doi: 10.3390/jcm12134425.
+- [6] L. E. Søvold, J. A. Naslund, and A. A. Kousoulis, "Prioritizing the Mental Health and Well-Being of Healthcare Workers: An Urgent Global Public Health Priority," *Frontiers in Public Health*, 2021, doi: 10.3389/fpubh.2021.679397.

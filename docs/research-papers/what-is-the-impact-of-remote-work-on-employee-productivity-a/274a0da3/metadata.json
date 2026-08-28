@@ -1,0 +1,11 @@
+{
+  "run_id": "274a0da3b24d4548917c22df0c7d7684",
+  "research_question": "What is the impact of remote work on employee productivity and well-being?",
+  "timings": {
+    "discovery_seconds": 302.0,
+    "writing_seconds": 616.3,
+    "verification_seconds": 2.3,
+    "quality_assurance_seconds": 0.0
+  },
+  "overall_quality_score": 3.6
+}

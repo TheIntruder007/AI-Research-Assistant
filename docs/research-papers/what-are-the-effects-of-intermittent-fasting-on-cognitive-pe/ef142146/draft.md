@@ -1,0 +1,64 @@
+> **AI-generated research draft for human review.** Not a verified or published research paper. Every claim must be checked against its cited source before any external use.
+
+# What are the effects of intermittent fasting on cognitive performance?
+
+*Introduction generation did not satisfy evidence constraints.*
+
+## Introduction
+
+*This section audit could not be resolved; unsupported content was omitted.*
+
+## Literature Review
+
+*This section audit could not be resolved; unsupported content was omitted.*
+
+## Research Gap
+
+### Absence of Comparative Studies Between Obese and Non-Obese Populations
+
+The corpus indicates a critical methodological gap where the effects of IF on cognitive function are not directly compared between obese and non-obese subjects. Paper [3] explicitly states that 'No study has directly compared the effects of IF between obese and non-obese subjects yet,' noting that most research focuses on individuals at risk for obesity. This prevents a nuanced understanding of whether metabolic adaptations to fasting differ fundamentally based on baseline adiposity, which is a key confounder in cognitive aging.
+
+*Evidence:* Paper [3] highlights the need to 'disentangle whether this protective effect holds true regardless of... the presence of obesity.' Paper [5] investigates postmenopausal women with obesity but does not include a non-obese control group for direct comparison within the same study design, limiting causal inference regarding body composition as a moderator.
+
+### Lack of Longitudinal Data on Cognitive Sustainability
+
+There is a pervasive absence of long-term follow-up data in human trials. Most included studies measure outcomes after short durations (e.g., 3 months), leaving the sustainability of cognitive benefits unknown. Paper [4] notes that 'extending the duration of fasting interventions beyond short-term assessments' is necessary to understand longer-term impacts. Similarly, Paper [5] admits its study lacked long-term follow-up, stating it is 'unknown whether the cognitive improvement... would be maintained over time.' This creates a gap in knowing if initial gains are transient adaptations or stable improvements.
+
+*Evidence:* Paper [4] calls for research on 'longer-term impacts and sustainability of TRE and IF practices in older populations.' Paper [5] explicitly states, 'a long-term follow-up was not determined in this study,' leaving the durability of memory improvements unverified beyond 3 months.
+
+### Insufficient Isolation of IF Effects from Concurrent Physical Activity
+
+The corpus contains a significant methodological weakness where the specific contribution of IF is confounded by physical activity. Paper [1] assesses a 'physical activity (PA) intervention' and finds benefits in executive control, but does not isolate fasting as a variable. Paper [5] combines diet and exercise interventions, making it impossible to disentangle whether cognitive gains are due to caloric restriction, metabolic switching, or the synergistic effect of exercise. Paper [6] calls for 'more strategically designed intervention studies' to reveal mechanisms, implying current designs often fail to isolate variables.
+
+*Evidence:* Paper [1] focuses on a 'PA program' without specifying fasting protocols, conflating fitness gains with potential dietary effects. Paper [5] assigns participants to 'diet group (intermittent fasting),' 'exercise group,' and 'combined group,' but the abstract does not detail if the diet group exercised or vice versa, complicating the attribution of BDNF and memory changes to IF specifically versus exercise.
+
+### Gap in Human Evidence for Neurodegenerative Disease Mechanisms
+
+While animal studies and theoretical frameworks suggest IF reduces amyloid accumulation and improves vascular health (Paper [2]), there is a distinct absence of human clinical trials confirming these mechanisms translate to cognitive preservation in Alzheimer's disease or related dementias. Paper [3] notes that while IF shows promise in animal models for Parkinson's and stroke, 'there is no clear evidence of a positive short-term effect of IF on cognition in healthy subjects.' This creates a gap between mechanistic plausibility in animals and clinical efficacy in humans.
+
+*Evidence:* Paper [2] states that in humans, IF has been studied in hypertension and diabetes but 'not as a strategy to reduce the risk of emergent dementia,' despite animal data showing reduced beta-amyloid. Paper [3] concludes that while mechanisms exist, 'there is no clear evidence of a positive short-term effect of IF on cognition in healthy subjects.'
+
+### Uncertainty Regarding IF Effects in Inherited ALS Models
+
+A highly specific and potentially dangerous gap exists regarding the safety of IF for motor neurons. Paper [2] reports that fasting 'promoted neurodegeneration in the inherited models of amyotrophic lateral sclerosis,' suggesting motor neurons may not adapt to metabolic stress. However, the verification search found no papers addressing this, indicating a lack of replication or broader investigation into whether this is an isolated finding or a generalizable vulnerability.
+
+*Evidence:* Paper [2] states: 'fasting promoted neurodegeneration in the inherited models of amyotrophic lateral sclerosis and did not offer protection against the progression of the disease.' The verification search confirms no subsequent papers have addressed this specific vulnerability, leaving the clinical safety of IF for ALS patients unverified.
+
+## Proposed Novelty and Contribution
+
+The identified gaps represent high novelty opportunities. Specifically, the direct comparison of IF effects between obese and non-obese subjects (Gap 1) is explicitly called out as missing in the literature by Paper [3]. The isolation of IF from concurrent exercise (Gap 3) addresses a major confounding variable in current trials like Paper [5]. The investigation into ALS-specific vulnerability (Gap 5) is particularly novel as it challenges the general assumption of neuroprotection, suggesting a specific pathological exception.
+
+*Caveats:* Novelty is assessed relative to the provided corpus. It is possible that recent papers published after October 2023 (the cutoff for Paper [4]) or outside the specific databases searched have addressed these questions, which would reduce novelty. The ALS finding in Paper [2] might be an isolated case study rather than a generalizable phenomenon, so its novelty as a 'gap' depends on whether it is replicated.
+
+
+## Limitations
+
+*This section audit could not be resolved; unsupported content was omitted.*
+
+## Conclusion
+
+*This section audit could not be resolved; unsupported content was omitted.*
+
+*No evidence-backed conclusion can be drawn.*
+
+## References

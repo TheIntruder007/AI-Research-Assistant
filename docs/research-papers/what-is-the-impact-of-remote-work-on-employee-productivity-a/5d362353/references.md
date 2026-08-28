@@ -1,0 +1,6 @@
+- [1] J. L. O. Beckel and G. G. Fisher, "Telework and Worker Health and Well-Being: A Review and Recommendations for Research and Practice," *International Journal of Environmental Research and Public Health*, 2022, doi: 10.3390/ijerph19073879.
+- [2] L. E. Søvold, J. A. Naslund, and A. A. Kousoulis, "Prioritizing the Mental Health and Well-Being of Healthcare Workers: An Urgent Global Public Health Priority," *Frontiers in Public Health*, 2021, doi: 10.3389/fpubh.2021.679397.
+- [3] F. Toscano and S. Zappalà, "Social Isolation and Stress as Predictors of Productivity Perception and Remote Work Satisfaction during the COVID-19 Pandemic: The Role of Concern about the Virus in a Moderated Double Mediation," *Sustainability*, 2020, doi: 10.3390/su12239804.
+- [4] C. Rott, K. Fettah, and I. Pavlidis, "Proceedings of the 2024 CHI Conference on Human Factors in Computing Systems," , 2024, doi: 10.1145/3613904.
+- [5] A. A. Davidescu, S. A. Apostu, and A. Paul, "Work Flexibility, Job Satisfaction, and Job Performance among Romanian Employees—Implications for Sustainable Human Resource Management," *Sustainability*, 2020, doi: 10.3390/su12156086.
+- [6] B. Wang, Y. Liu, and J. Qian, "Achieving Effective Remote Working During the COVID‐19 Pandemic: A Work Design Perspective," *Applied Psychology*, 2020, doi: 10.1111/apps.12290.

@@ -1,0 +1,5 @@
+- [1] E. Mayor, "Neurotrophic effects of intermittent fasting, calorie restriction and exercise: a review and annotated bibliography," *Frontiers in Aging*, 2023, doi: 10.3389/fragi.2023.1161814.
+- [2] A. Elias, N. Padinjakara, and N. T. Lautenschlager, "Effects of intermittent fasting on cognitive health and Alzheimer’s disease," *Nutrition Reviews*, 2023, doi: 10.1093/nutrit/nuad021.
+- [3] J. Gudden, A. A. Vásquez, and M. Bloemendaal, "The Effects of Intermittent Fasting on Brain and Cognitive Function," *Nutrients*, 2021, doi: 10.3390/nu13093166.
+- [4] M. A. Boujelbane, K. Trabelsi, and H. Jahrami, "Time-restricted feeding and cognitive function in sedentary and physically active elderly individuals: Ramadan diurnal intermittent fasting as a model," *Frontiers in Nutrition*, 2022, doi: 10.3389/fnut.2022.1041216.
+- [5] S. Liu, M. Zeng, and W. Wan, "The Health-Promoting Effects and the Mechanism of Intermittent Fasting," *Journal of Diabetes Research*, 2023, doi: 10.1155/2023/4038546.

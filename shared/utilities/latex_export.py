@@ -140,8 +140,13 @@ def compile_pdf(tex_path: Path, output_dir: Path) -> Path | None:
         # tectonic handles this internally in one invocation but a second,
         # harmless run is not attempted for it.
         passes = 1 if command[0] == "tectonic" else 2
+        # tectonic's very first run on a machine downloads its TeX resource
+        # bundle (cached afterward) — a real, observed run took several
+        # minutes for that reason alone before any actual typesetting
+        # started. 300s gives room for that one-time cost; cached runs
+        # finish in a few seconds.
         for _ in range(passes):
-            subprocess.run(command, capture_output=True, timeout=120, check=False)
+            subprocess.run(command, capture_output=True, timeout=300, check=False)
     except (OSError, subprocess.TimeoutExpired):
         return None
 

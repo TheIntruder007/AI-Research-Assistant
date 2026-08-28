@@ -1,0 +1,6 @@
+- [1] D. Kapogiannis, A. Manolopoulos, and R. Mullins, "Brain responses to intermittent fasting and the healthy living diet in older adults," *Cell metabolism*, 2024, doi: 10.1016/j.cmet.2024.05.017.
+- [2] L. Li, Z. Wang, and Z. Zuo, "Chronic Intermittent Fasting Improves Cognitive Functions and Brain Structures in Mice," *PLoS ONE*, 2013, doi: 10.1371/journal.pone.0066069.
+- [3] H. H. Tian, A. R. Aziz, and W. Png, "Effects of Fasting During Ramadan Month on Cognitive Function in Muslim Athletes," *Asian Journal of Sports Medicine*, 2011, doi: 10.5812/asjsm.34753.
+- [4] A. R. Vasconcelos, L. Yshii, and T. A. Viel, "Intermittent fasting attenuates lipopolysaccharide-induced neuroinflammation and memory impairment," *Journal of Neuroinflammation*, 2014, doi: 10.1186/1742-2094-11-85.
+- [5] C. Valls‐Pedret, A. Sala‐Vila, and M. Serra‐Mir, "Mediterranean Diet and Age-Related Cognitive Decline," *JAMA Internal Medicine*, 2015, doi: 10.1001/jamainternmed.2015.1668.
+- [6] V. Carvajal, A. Marín, and D. Gihardo, "[Intermittent fasting and human metabolic health]," *Revista medica de Chile*, 2023, doi: 10.4067/s0034-98872023000100081.

@@ -1,0 +1,4 @@
+- [1] T. Astell‐Burt and X. Feng, "Association of Urban Green Space With Mental Health and General Health Among Adults in Australia," *JAMA Network Open*, 2019, doi: 10.1001/jamanetworkopen.2019.8209.
+- [2] M. Hedblom, B. Gunnarsson, and B. Iravani, "Reduction of physiological stress by urban green space in a multisensory virtual experiment," *Scientific Reports*, 2019, doi: 10.1038/s41598-019-46099-7.
+- [3] A. Lee and R. Maheswaran, "The health benefits of urban green spaces: a review of the evidence," *Journal of Public Health*, 2010, doi: 10.1093/pubmed/fdq068.
+- [4] M. C. Kondo, J. Fluehr, and T. P. McKeon, "Urban Green Space and Its Impact on Human Health," *International Journal of Environmental Research and Public Health*, 2018, doi: 10.3390/ijerph15030445.

@@ -1,0 +1,6 @@
+- [1] L. Li, Z. Wang, and Z. Zuo, "Chronic Intermittent Fasting Improves Cognitive Functions and Brain Structures in Mice," *PLoS ONE*, 2013, doi: 10.1371/journal.pone.0066069.
+- [2] A. Elias, N. Padinjakara, and N. T. Lautenschlager, "Effects of intermittent fasting on cognitive health and Alzheimer’s disease," *Nutrition Reviews*, 2023, doi: 10.1093/nutrit/nuad021.
+- [3] Z. Liu, X. Dai, and H. Zhang, "Gut microbiota mediates intermittent-fasting alleviation of diabetes-induced cognitive impairment," *Nature Communications*, 2020, doi: 10.1038/s41467-020-14676-4.
+- [4] A. R. Vasconcelos, L. Yshii, and T. A. Viel, "Intermittent fasting attenuates lipopolysaccharide-induced neuroinflammation and memory impairment," *Journal of Neuroinflammation*, 2014, doi: 10.1186/1742-2094-11-85.
+- [5] C. H. Hillman, M. B. Pontifex, and D. M. Castelli, "Effects of the FITKids Randomized Controlled Trial on Executive Control and Brain Function," *PEDIATRICS*, 2014, doi: 10.1542/peds.2013-3219.
+- [6] C. Valls‐Pedret, A. Sala‐Vila, and M. Serra‐Mir, "Mediterranean Diet and Age-Related Cognitive Decline," *JAMA Internal Medicine*, 2015, doi: 10.1001/jamainternmed.2015.1668.

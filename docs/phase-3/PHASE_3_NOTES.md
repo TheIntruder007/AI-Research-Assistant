@@ -212,7 +212,38 @@ outputs/<topic-slug>_<run-id>/
 
 ## 📊 13. Results
 
-### 🖥️ Real captured terminal output (a genuine run)
+### 🖥️ Real terminal-UI screenshots, one per pipeline stage (a genuine run)
+
+Every image below is a real screenshot — exported directly from the actual `researchgenie` terminal app's own Rich console output via Rich's own SVG export (`Console.save_svg`), from **one real, complete pipeline run** (topic: *"What is the effect of green tea consumption on metabolic health markers?"*, IEEE format, standard length, live `qwen3.5:9b`). Nothing here is a mockup or a hand-edited image — each SVG is the literal rendering the terminal would have shown a real user at that exact moment.
+
+**1. Launch banner**
+![Launch banner](images/01-launch-banner.svg)
+
+**2. Research summary (after answering the setup questions)**
+![Research summary](images/02-research-summary.svg)
+
+**3. Research Discovery stage in progress**
+![Discovery stage](images/03-stage-discovery.svg)
+
+**4. Research Writing stage begins (Discovery just finished)**
+![Writing stage](images/04-stage-writing.svg)
+
+**5. Citation Verification stage (Writing just finished — with a real, visible warning)**
+![Verification stage](images/05-stage-verification.svg)
+
+**6. Quality Assessment stage (Verification just finished)**
+![Quality Assessment stage](images/06-stage-quality-assurance.svg)
+
+**7. All four stages resolved**
+![All stages complete](images/07-all-stages-complete.svg)
+
+**8. Final completion screen**
+![Completion screen](images/08-completion.svg)
+
+**Reported honestly, not cherry-picked:** this particular real run finished with `draft_status: partial` (one Discussion section genuinely failed its own audit) — visible directly in screenshots 5, 7, and 8 exactly as the real terminal app shows it (a warning glyph on the affected stage, and "Broken sections: Discussion" on the completion screen). This is the terminal UI's own honest-reporting behavior working as designed, not a staged success screenshot.
+
+<details>
+<summary>Historical note: an earlier captured run (kept for the record)</summary>
 
 ```
 ╭───────────────────────────────────╮
@@ -237,7 +268,8 @@ Ready to research.
 │   ✓ Quality report   ✓ Citation validation report   ✓ Reference list        │
 ╰──────────────────────────────────────────────────────────────────────────────╯
 ```
-*(Captured from an actual end-to-end run. Note: this specific capture predates a later fix — see §17 — where a stage that finished with an internal warning was still shown with a plain green checkmark; the current version shows such a stage as visibly degraded instead.)*
+*(Captured from an actual end-to-end run. Note: this specific capture predates a later fix — see §17 — where a stage that finished with an internal warning was still shown with a plain green checkmark; the current version shows such a stage as visibly degraded instead, exactly as screenshots 5/6/7 above demonstrate.)*
+</details>
 
 ## 🎯 14. Accuracy / Quality
 

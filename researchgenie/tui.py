@@ -104,22 +104,44 @@ def render_banner(console: Console) -> None:
 
 
 def render_summary(console: Console, *, question: str, corpus_size: int,
-                   target_format: str, provider_label: str) -> None:
+                   target_format: str, provider_label: str,
+                   target_words: int | None = None) -> None:
     table = Table.grid(padding=(0, 2))
     table.add_column(style=f"bold {MUTED}")
     table.add_column()
     table.add_row("Research Topic", question)
     table.add_row("Papers", str(corpus_size))
     table.add_row("Format", target_format)
+    if target_words is not None:
+        table.add_row("Target length", f"~{target_words} words")
     table.add_row("AI Engine", provider_label)
     console.print(Panel(table, title="Research Summary", border_style=SECONDARY))
 
 
 def render_completion(console: Console, *, run_directory: str, overall_score: float,
-                      artifacts: list[str]) -> None:
+                      artifacts: list[str], draft_status: str | None = None,
+                      length_status: str | None = None, actual_words: int | None = None,
+                      target_words: int | None = None,
+                      evidence_limited_sections: list[str] | None = None,
+                      broken_sections: list[str] | None = None) -> None:
     body = Table.grid(padding=(0, 1))
     body.add_column()
     body.add_row(Text(f"Overall quality score: {overall_score:.1f}/5.0", style=ACCENT))
+    if draft_status is not None:
+        status_style = {"complete": OK, "partial": WARN, "failed": ERROR}.get(draft_status, MUTED)
+        body.add_row(Text(f"Draft status: {draft_status}", style=status_style))
+    if actual_words is not None:
+        length_line = f"Length: {actual_words} words"
+        if target_words is not None:
+            length_line += f" (target ~{target_words}, {length_status or 'n/a'})"
+        body.add_row(Text(length_line, style=MUTED))
+    if evidence_limited_sections:
+        body.add_row(Text(
+            f"Evidence-limited sections (shorter but honest): {', '.join(evidence_limited_sections)}",
+            style=WARN,
+        ))
+    if broken_sections:
+        body.add_row(Text(f"Broken sections: {', '.join(broken_sections)}", style=ERROR))
     body.add_row("")
     body.add_row(Text("Output folder:", style=f"bold {MUTED}"))
     body.add_row(Text(run_directory, style=ACCENT))

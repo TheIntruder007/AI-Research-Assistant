@@ -47,8 +47,15 @@ async def write_introduction(
     model: LanguageModel,
     *,
     output_language: str = "en",
+    target_words: int | None = None,
+    min_words: int | None = None,
+    max_words: int | None = None,
 ) -> SectionDraft:
-    """Introduce the stable body using only overview evidence and top-level summaries."""
+    """Introduce the stable body using only overview evidence and top-level summaries.
+
+    target_words/min_words/max_words: this bookend's planned length budget
+    (see DECISIONS.md D-025/D-026) — None when no total paper length was
+    requested, exactly preserving pre-D-025 behavior."""
 
     return await _write_part(
         "write_introduction.md",
@@ -61,6 +68,9 @@ async def write_introduction(
             ],
             "overview_points": [point.model_dump(mode="json") for point in overview_points],
             "output_language": output_language,
+            "target_words": target_words,
+            "min_words": min_words,
+            "max_words": max_words,
         },
         model,
     )
@@ -72,8 +82,26 @@ async def write_conclusion(
     model: LanguageModel,
     *,
     output_language: str = "en",
+    target_words: int | None = None,
+    min_words: int | None = None,
+    max_words: int | None = None,
+    introduction_content: str | None = None,
 ) -> SectionDraft:
-    """Conclude from audited body summaries without introducing new evidence."""
+    """Conclude from audited body summaries without introducing new evidence.
+
+    introduction_content: the ALREADY-GENERATED Introduction's own final
+    text (write_review() always writes the Introduction first — see
+    graph.py), supplied so the Conclusion can be a genuinely distinct
+    synthesis rather than restating the same opening claims. Root-cause fix
+    for real, observed Introduction/Conclusion content duplication (see
+    PAPER_OUTPUT_FINAL_DIAGNOSTIC.md finding #2 / DECISIONS.md D-028):
+    before this, write_conclusion() had no way to know what the Introduction
+    already said, so with both drawing on overlapping evidence (the
+    Introduction's `top_level_summaries` is a subset of the Conclusion's
+    full `section_summaries`), the model had every reason to converge on
+    the same restatement independently. None when no Introduction exists
+    (e.g. no intro evidence at all) — the prompt treats that as "nothing to
+    avoid repeating," not an error."""
 
     return await _write_part(
         "write_conclusion.md",
@@ -84,6 +112,10 @@ async def write_conclusion(
                 summary.model_dump(mode="json") for summary in section_summaries
             ],
             "output_language": output_language,
+            "target_words": target_words,
+            "min_words": min_words,
+            "max_words": max_words,
+            "introduction_already_written": introduction_content,
         },
         model,
     )

@@ -28,3 +28,15 @@ section".
 Render citations only as supplied `[@P001]` placeholders. Place each placeholder next to the
 claim it supports and keep it synchronized with `cited_paper_ids`. Return polished prose, a
 compact child-safe analytical summary, and complete `cited_paper_ids` and `used_point_ids`.
+
+### Planned length
+
+If `target_words` (with `min_words`/`max_words`) is present in the supplied context, it is
+this section's planned scope within the overall paper — not a strict rule to hit exactly, but
+a real target. Never pad, repeat a claim, invent evidence, or fabricate a citation to reach
+it. But when the supplied evidence genuinely supports it, develop the analysis fully enough to
+reach at least `min_words`: cover each distinct supported claim or comparison the evidence
+allows, with its reasoning and significance, rather than stopping after the first one or two
+sentences once the section's core point has been stated. If the evidence is too thin to
+reasonably reach `min_words` without repetition or invention, write only what is genuinely
+supported — a shorter, fully evidence-grounded section is always correct over a padded one.

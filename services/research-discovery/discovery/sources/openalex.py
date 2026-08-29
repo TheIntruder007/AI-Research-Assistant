@@ -2,15 +2,14 @@
 
 from __future__ import annotations
 
-import asyncio
 import os
 
 import httpx
 
 from ..models import Paper, normalize_doi
+from ._http_retry import get_with_retry
 
 SEARCH_URL = "https://api.openalex.org/works"
-RETRY_STATUSES = {429, 500, 502, 503, 504}
 
 
 def _reconstruct_abstract(inverted_index: dict | None) -> str | None:
@@ -22,32 +21,6 @@ def _reconstruct_abstract(inverted_index: dict | None) -> str | None:
         for i in indices:
             positions[i] = word
     return " ".join(positions[i] for i in sorted(positions)) or None
-
-
-def _retry_after_seconds(resp: httpx.Response) -> float | None:
-    value = resp.headers.get("Retry-After")
-    if not value:
-        return None
-    try:
-        return float(value)  # delta-seconds form
-    except ValueError:
-        return None  # HTTP-date form — fall back to our own backoff
-
-
-async def _get(http: httpx.AsyncClient, params: dict, attempts: int = 4) -> httpx.Response:
-    """GET with bounded exponential backoff on rate-limit / 5xx, honoring
-    Retry-After. OpenAlex is the sole backend for the per-candidate verification
-    searches, so a transient 429 must not silently lose a candidate's evidence."""
-    delay = 1.0
-    resp = await http.get(SEARCH_URL, params=params)
-    for _ in range(attempts - 1):
-        if resp.status_code not in RETRY_STATUSES:
-            return resp
-        wait = _retry_after_seconds(resp)
-        await asyncio.sleep(min(wait if wait is not None else delay, 30.0))
-        delay *= 2
-        resp = await http.get(SEARCH_URL, params=params)
-    return resp
 
 
 async def search(http: httpx.AsyncClient, queries: dict, limit: int,
@@ -65,7 +38,10 @@ async def search(http: httpx.AsyncClient, queries: dict, limit: int,
     if email:
         params["mailto"] = email
 
-    resp = await _get(http, params)
+    # OpenAlex is the sole backend for the per-candidate verification searches,
+    # so a transient 429/5xx must not silently lose a candidate's evidence —
+    # see _http_retry.py (shared with the other sources, see DECISIONS.md D-028).
+    resp = await get_with_retry(http, SEARCH_URL, params)
     resp.raise_for_status()
 
     papers = []

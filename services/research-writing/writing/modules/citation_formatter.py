@@ -14,7 +14,41 @@ from writing.schemas import CitationInfo, CitationStyle, PaperMetadata
 # unsupported and, worse, could leave an un-replaced literal `[P001]` in the
 # rendered output). "P" + 3+ digits is a paper-ID-specific pattern, so this
 # does not risk matching unrelated bracketed text.
-_CITATION = re.compile(r"\[@?(?P<paper_id>P\d{3,})\]")
+#
+# A model occasionally invents a range/list shorthand instead of repeating
+# the placeholder — `[P003-P006]` for "P003, P004, P005, P006" — even though
+# editorial_standard.md now explicitly tells it not to (see DECISIONS.md
+# D-026 "bookend audit investigation": this was found to be the ROOT CAUSE
+# of the bookend Introduction/Conclusion sections being discarded on a real
+# run — the shorthand form parsed as zero valid citations, so it looked like
+# the model cited papers in `cited_paper_ids` that never appeared in the
+# prose at all, failing the audit even though every paper in the range was
+# genuinely allowed). The optional `-@?P\d{3,}` end group tolerates the
+# shorthand as a defense-in-depth safety net, the same "prompt fix + tolerant
+# parsing" pattern D-021 already established for the missing-"@" case.
+_CITATION = re.compile(r"\[@?(?P<paper_id>P\d{3,})(?:-@?(?P<range_end>P\d{3,}))?\]")
+
+
+def _expand_citation_match(match: re.Match[str]) -> list[str]:
+    """Returns the one or more paper IDs one `_CITATION` match covers."""
+
+    start = match.group("paper_id")
+    end = match.group("range_end")
+    if end is None:
+        return [start]
+    start_digits, end_digits = start[1:], end[1:]
+    if len(start_digits) != len(end_digits):
+        # Different digit widths (e.g. "P003-P0006") isn't a genuine
+        # sequential range — treat the two ends literally rather than guess.
+        return [start, end]
+    lo, hi = int(start_digits), int(end_digits)
+    # A garbled or absurdly wide "range" (hi < lo, or spanning 50+ IDs) is
+    # more likely a formatting error than a real citation list — fall back
+    # to just the two literal endpoints rather than expanding it.
+    if hi < lo or hi - lo > 50:
+        return [start, end]
+    width = len(start_digits)
+    return [f"P{n:0{width}d}" for n in range(lo, hi + 1)]
 _AUTHOR_YEAR = re.compile(
     r"^\([^(),]+(?:\s+(?:and|&)\s+[^(),]+|\s+et\s+al\.)?,\s*"
     r"(?:\d{4}[a-z]?|n\.d\.)\)$"
@@ -396,9 +430,14 @@ def citation_format_errors(
 
 
 def extract_cited_paper_ids(content: str) -> list[str]:
-    """Return citation placeholder IDs in first-appearance order."""
+    """Return citation placeholder IDs in first-appearance order. A
+    range/list shorthand like `[P003-P006]` expands to every ID it covers
+    (see `_expand_citation_match`) rather than vanishing from extraction."""
 
-    return list(dict.fromkeys(match.group("paper_id") for match in _CITATION.finditer(content)))
+    ids: list[str] = []
+    for match in _CITATION.finditer(content):
+        ids.extend(_expand_citation_match(match))
+    return list(dict.fromkeys(ids))
 
 
 def format_citations(
@@ -410,8 +449,7 @@ def format_citations(
 
     style = _require_style(citation_style)
 
-    def replace(match: re.Match[str]) -> str:
-        paper_id = match.group("paper_id")
+    def render_one(paper_id: str) -> str:
         try:
             rendered = citations[paper_id].in_text_citation
         except KeyError as error:
@@ -422,6 +460,12 @@ def format_citations(
                 f"invalid {style} citation for {paper_id}: " + "; ".join(format_errors)
             )
         return rendered
+
+    def replace(match: re.Match[str]) -> str:
+        # A range/list shorthand (see `_expand_citation_match`) renders as
+        # each covered paper's own citation, joined — never silently
+        # collapsed to just the first or last paper in the range.
+        return "; ".join(render_one(paper_id) for paper_id in _expand_citation_match(match))
 
     return _CITATION.sub(replace, content)
 

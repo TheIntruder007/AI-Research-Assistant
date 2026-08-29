@@ -47,10 +47,48 @@ def _inline_formatting(text: str) -> str:
     return escaped
 
 
-def markdown_to_latex(markdown: str, *, title: str) -> str:
+# Format-specific LaTeX preamble/front-matter. Only the two formats the
+# product actually asks a user to choose between (IEEE vs Springer — see
+# ResearchRequest.target_format and DECISIONS.md D-026) get a dedicated
+# publisher document class; anything else (ACM/APA/Other) keeps the
+# original, always-compilable plain `article` class rather than guessing at
+# an unverified template. Springer's actual "svjour3" class is not available
+# in tectonic's bundled TeX distribution (confirmed by direct test); `llncs`
+# (Springer's real, standard Lecture Notes in Computer Science class) is
+# used instead as a genuine, compiling Springer template — documented
+# honestly here rather than silently substituted.
+_DOCUMENT_CLASSES: dict[str, str] = {
+    "IEEE": "\\documentclass[conference]{IEEEtran}\n",
+    "Springer": "\\documentclass{llncs}\n",
+}
+_DEFAULT_DOCUMENT_CLASS = "\\documentclass[11pt]{article}\n"
+
+
+def _front_matter(target_format: str, title: str) -> str:
+    escaped_title = _inline_formatting(title)
+    if target_format == "IEEE":
+        return (
+            f"\\title{{{escaped_title}}}\n"
+            "\\author{\\IEEEauthorblockN{ResearchGenie}"
+            "\\IEEEauthorblockA{AI-generated research draft}}\n"
+        )
+    if target_format == "Springer":
+        return (
+            f"\\title{{{escaped_title}}}\n"
+            "\\author{ResearchGenie}\n"
+            "\\institute{AI-generated research draft}\n"
+        )
+    return f"\\title{{{escaped_title}}}\n\\date{{}}\n"
+
+
+def markdown_to_latex(markdown: str, *, title: str, target_format: str = "Other") -> str:
     """Converts the pipeline's known draft shape into a compilable LaTeX
-    `article`. References are rendered as a `thebibliography` block from
-    the trailing "## References" section's bullet list, if present."""
+    document. `target_format` selects the publisher document class ("IEEE"
+    -> IEEEtran, "Springer" -> llncs); anything else keeps the original
+    plain `article` class. References are rendered as a `thebibliography`
+    block from the trailing "## References" section's bullet list, if
+    present — `thebibliography` is supported by all three classes, so no
+    format-specific bibliography handling is needed."""
     lines = markdown.splitlines()
     body: list[str] = []
     references: list[str] = []
@@ -105,14 +143,18 @@ def markdown_to_latex(markdown: str, *, title: str) -> str:
             "\n\\begin{thebibliography}{99}\n" + items + "\n\\end{thebibliography}\n"
         )
 
+    document_class = _DOCUMENT_CLASSES.get(target_format, _DEFAULT_DOCUMENT_CLASS)
+    # `geometry` is redundant with (and can warn under) IEEEtran/llncs, which
+    # already set their own publisher-defined page layout — only the plain
+    # `article` fallback needs it.
+    geometry = "" if target_format in _DOCUMENT_CLASSES else "\\usepackage[margin=1in]{geometry}\n"
     return (
-        "\\documentclass[11pt]{article}\n"
-        "\\usepackage[utf8]{inputenc}\n"
-        "\\usepackage[margin=1in]{geometry}\n"
-        "\\usepackage{hyperref}\n"
-        f"\\title{{{_inline_formatting(title)}}}\n"
-        "\\date{}\n"
-        "\\begin{document}\n"
+        document_class
+        + "\\usepackage[utf8]{inputenc}\n"
+        + geometry
+        + "\\usepackage{hyperref}\n"
+        + _front_matter(target_format, title)
+        + "\\begin{document}\n"
         "\\maketitle\n"
         + "\n".join(body)
         + bibliography

@@ -19,5 +19,18 @@ Do not introduce a paper, claim, definition, historical fact, or topic absent fr
 inputs. Do not overstate the final answer before the evidence is developed. Use direct,
 accessible prose and finish with a precise statement of the review's analytical scope.
 
+The body sections will present the full evidence — specific figures, ranges, and exact
+findings — in detail. The introduction's job is to map the territory, not pre-narrate it: when
+drawing on `overview_points`, restate their significance and relationship to the review
+question in your own higher-level framing rather than reproducing the same specific numbers,
+statistics, or near-identical sentences the body will already state in full. If two or more
+sentences here would read as a near copy of a body section once both are read together, that
+is a sign to compress to the map-level claim instead.
+
 Render citations only as supplied `[@P001]` placeholders. Do not quote sources or cite page
 numbers. Return prose and complete `cited_paper_ids` and `used_point_ids`.
+
+If `target_words`/`min_words` is present in the supplied context, use it as this section's
+planned scope — develop the four-point arc above fully enough to reach it when the supplied
+summaries and overview points genuinely support that much content, but never pad, repeat, or
+introduce anything not already present in the inputs to reach a word count.

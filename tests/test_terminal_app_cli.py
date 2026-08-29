@@ -19,6 +19,7 @@ def test_collect_request_interactively_builds_request_from_prompts(monkeypatch):
         "en",                               # language
         "fasting, cognition",               # keywords
         "",                                 # excluded topics
+        "detailed",                         # paper length
     ])
     monkeypatch.setattr("builtins.input", lambda _prompt="": next(answers))
 
@@ -33,14 +34,26 @@ def test_collect_request_interactively_builds_request_from_prompts(monkeypatch):
     assert request.domain == "nutrition science"
     assert request.keywords == ["fasting", "cognition"]
     assert request.excluded_topics == []
+    assert request.max_draft_length == 6000
 
 
 def test_collect_request_interactively_requires_format_other_name_when_other(monkeypatch):
     answers = iter([
-        "Q?", "conference", "", "Other", "CustomStyle", "", "8", "", "en", "", "",
+        "Q?", "conference", "", "Other", "CustomStyle", "", "8", "", "en", "", "", "",
     ])
     monkeypatch.setattr("builtins.input", lambda _prompt="": next(answers))
 
     request = collect_request_interactively()
     assert request.target_format == "Other"
     assert request.format_other_name == "CustomStyle"
+    assert request.max_draft_length == 4000
+
+
+def test_collect_request_interactively_defaults_length_to_standard_on_blank_input(monkeypatch):
+    answers = iter([
+        "Q?", "conference", "", "IEEE", "", "8", "", "en", "", "", "",
+    ])
+    monkeypatch.setattr("builtins.input", lambda _prompt="": next(answers))
+
+    request = collect_request_interactively()
+    assert request.max_draft_length == 4000

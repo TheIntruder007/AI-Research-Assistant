@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
-import asyncio
 import os
 
 import httpx
 
 from ..models import Paper, normalize_doi
+from ._http_retry import get_with_retry
 
 SEARCH_URL = "https://api.semanticscholar.org/graph/v1/paper/search"
 FIELDS = "title,abstract,year,venue,citationCount,authors,externalIds,url,openAccessPdf"
@@ -21,12 +21,11 @@ async def search(http: httpx.AsyncClient, queries: dict, limit: int) -> list[Pap
 
     params = {"query": queries["keyword"], "limit": min(limit, 100), "fields": FIELDS}
 
-    # The shared unauthenticated pool 429s often; be patient before giving up.
-    for backoff in (2, 5, 10, None):
-        resp = await http.get(SEARCH_URL, params=params, headers=headers)
-        if resp.status_code != 429 or backoff is None:
-            break
-        await asyncio.sleep(backoff)
+    # The shared unauthenticated pool 429s often, and previously ONLY 429 was
+    # retried here (a narrower set than the other sources' shared helper) —
+    # broadened to the same 429/5xx retry set as every other source (see
+    # DECISIONS.md D-028).
+    resp = await get_with_retry(http, SEARCH_URL, params, headers=headers)
     resp.raise_for_status()
 
     papers = []

@@ -85,6 +85,36 @@ def test_compile_pdf_returns_none_when_no_toolchain_available(tmp_path, monkeypa
     assert compile_pdf(tex_path, tmp_path) is None
 
 
+def test_ieee_format_uses_ieeetran_document_class():
+    tex = markdown_to_latex(_SAMPLE, title="Q", target_format="IEEE")
+    assert tex.startswith("\\documentclass[conference]{IEEEtran}")
+    assert "\\IEEEauthorblockN" in tex
+
+
+def test_springer_format_uses_llncs_document_class():
+    tex = markdown_to_latex(_SAMPLE, title="Q", target_format="Springer")
+    assert tex.startswith("\\documentclass{llncs}")
+    assert "\\institute{" in tex
+
+
+def test_unrecognized_format_falls_back_to_plain_article():
+    tex = markdown_to_latex(_SAMPLE, title="Q", target_format="ACM")
+    assert tex.startswith("\\documentclass[11pt]{article}")
+
+
+def test_default_format_preserves_old_plain_article_behavior():
+    tex = markdown_to_latex(_SAMPLE, title="Q")
+    assert tex.startswith("\\documentclass[11pt]{article}")
+
+
+def test_ieee_and_springer_still_render_sections_and_bibliography():
+    for fmt in ("IEEE", "Springer"):
+        tex = markdown_to_latex(_SAMPLE, title="Q", target_format=fmt)
+        assert "\\section{Introduction}" in tex
+        assert "\\begin{thebibliography}" in tex
+        assert "\\begin{document}" in tex and "\\end{document}" in tex
+
+
 def test_compile_pdf_returns_none_if_output_file_was_not_actually_produced(tmp_path, monkeypatch):
     """Never claim a PDF exists unless the compiler actually wrote one —
     even if the subprocess "succeeds" without producing output."""

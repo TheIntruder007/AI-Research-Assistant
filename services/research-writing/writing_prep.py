@@ -29,18 +29,32 @@ def build_outline(discovery: DiscoveryResult) -> str:
     graph's per-paper tagging step to (correctly, per its own no-invented-
     evidence rule) exclude almost the entire corpus from every subsection —
     verified on a real 6-paper run where this produced only 2 of 13
-    sections. A single flat Literature Review section lets papers'
-    abstract-level evidence roll up naturally instead of being sliced into
-    slots most of the corpus can't satisfy. The gaps themselves are
+    sections. Each remaining tag here keeps that same lesson: broad, flat,
+    evidence-safe scopes rather than narrow per-theme slots.
+
+    Outline is Background / Literature Review / Discussion / Limitations
+    (see DECISIONS.md D-025) — deliberately NOT Introduction/Conclusion:
+    the writing graph already generates those as separate "bookend" calls
+    (write_review()'s write_introduction()/write_conclusion(), which
+    synthesize the whole body and are name-independent of the outline).
+    Giving the outline its OWN Introduction/Conclusion tags on top of that
+    created two competing generation paths for the same conceptual
+    content — sometimes both firing (visibly duplicated prose) and
+    sometimes both failing (a blank section that still counted as
+    "complete", since the outline's own tag and the bookend track
+    completeness separately). Removing them from the outline makes the
+    bookends the sole authority for those two sections, and gives Background
+    and Discussion sections instead — new, genuinely useful academic
+    content the paper previously never had. The gaps/novelty themselves are
     Service 1's own already-synthesized output, not something Service 2
     needs to re-derive from literature evidence — see
     render_research_gap_section() below, which renders them directly."""
     return "\n".join([
         f"# {discovery.research_request.research_question}",
-        "## Introduction",
+        "## Background",
         "## Literature Review",
+        "## Discussion",
         "## Limitations",
-        "## Conclusion",
     ])
 
 

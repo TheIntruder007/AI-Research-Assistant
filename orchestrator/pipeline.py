@@ -240,7 +240,10 @@ async def run_pipeline(
     # this machine; never claimed as produced otherwise.
     tex_path = final_dir / "paper.tex"
     tex_path.write_text(
-        latex_export.markdown_to_latex(qa_result.final_draft_markdown, title=request.research_question),
+        latex_export.markdown_to_latex(
+            qa_result.final_draft_markdown, title=request.research_question,
+            target_format=request.target_format,
+        ),
         encoding="utf-8",
     )
     latex_export.compile_pdf(tex_path, final_dir)
@@ -254,10 +257,23 @@ async def run_pipeline(
         discovery=discovery_result, writing=writing_result,
         verification=verification_result, quality_assurance=qa_result, timings=timings,
     )
+    draft_meta = writing_result.draft_metadata
     _write_json(run_directory / "metadata.json", {
         "run_id": run_id,
         "research_question": request.research_question,
         "timings": timings.model_dump(),
         "overall_quality_score": qa_result.scores.overall,
+        # Length/completeness analytics (Fix 8, DECISIONS.md D-026) — the
+        # same fields as draft_metadata, surfaced at the top level of the
+        # run's metadata.json so a final-status report never has to dig
+        # through the writing stage's own result to answer "did this run
+        # produce a complete, correctly-sized paper?".
+        "draft_status": draft_meta.draft_status,
+        "target_words": draft_meta.target_words,
+        "actual_words": draft_meta.actual_words,
+        "length_status": draft_meta.length_status,
+        "evidence_limited_sections": draft_meta.evidence_limited_sections,
+        "broken_sections": draft_meta.broken_sections,
+        "duplicate_sections": draft_meta.duplicate_sections,
     })
     yield {"type": "result", "result": result}

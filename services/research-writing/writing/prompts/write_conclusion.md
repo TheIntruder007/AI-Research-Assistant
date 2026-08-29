@@ -16,3 +16,18 @@ Introduce no new paper, point, mechanism, example, recommendation, or factual cl
 quote sources, cite page numbers, use headings, or mention "this review". Render citations
 only as supplied `[@P001]` placeholders. Return polished prose and complete
 `cited_paper_ids` and `used_point_ids`.
+
+If `target_words`/`min_words` is present in the supplied context, use it as this section's
+planned scope — develop the three-level synthesis above fully enough to reach it when the
+summaries genuinely support that much content, but never pad, repeat, or introduce anything
+not already present in the summaries to reach a word count.
+
+If `introduction_already_written` is present, it is this review's actual, already-published
+Introduction — the reader has just read it. Do not restate its sentences, its framing of the
+problem, or its specific claims/statistics in similar words: that is the Introduction's job,
+not the Conclusion's. The Conclusion's distinct job is the retrospective judgment the
+Introduction could not yet make — what the completed body actually established, what remains
+contested, and what still cannot be concluded. If a fact from the Introduction is genuinely
+needed to state a final judgment, reference its significance rather than re-describing it.
+A conclusion that could be produced without ever having read the body sections has failed
+this task, regardless of word count.

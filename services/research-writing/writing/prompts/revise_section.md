@@ -17,6 +17,14 @@ instead. If none does, remove or rewrite the claim so it no longer needs that ci
 attach an allowed paper's citation to a claim its points do not actually support merely to
 resolve the finding.
 
+If a finding says the section fell short of its planned length: the original evidence
+(`direct_points`, `ancestor_context`, `child_summaries`) in the original context almost always
+supports more than the first draft used. Add distinct, evidence-backed claims, comparisons, or
+reasoning the original draft omitted — never by repeating an existing sentence in different
+words, inventing a claim, or citing outside the allowed papers. If, after reviewing the
+evidence again, it genuinely cannot support more without repetition or invention, keep the
+draft as is rather than padding it.
+
 Use only `[@P001]` placeholders and synchronize them with the provenance lists. Return the
 revised prose, a compact analytical summary, and complete `cited_paper_ids` and
 `used_point_ids`.

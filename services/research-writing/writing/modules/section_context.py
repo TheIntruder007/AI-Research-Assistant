@@ -40,6 +40,8 @@ def build_section_context(
     target_words: int | None = None,
     writing_mode: Literal["leaf_section", "parent_intro", "subtree"] | None = None,
     output_language: str = "en",
+    min_words: int | None = None,
+    max_words: int | None = None,
 ) -> SectionWritingContext:
     """Derive all evidence and allowed citations for exactly one section."""
 
@@ -127,5 +129,7 @@ def build_section_context(
         sibling_titles=sibling_titles,
         prohibited_topics=sibling_titles,
         target_words=target_words,
+        min_words=min_words,
+        max_words=max_words,
         output_language=output_language,
     )

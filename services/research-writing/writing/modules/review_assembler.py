@@ -150,8 +150,21 @@ def assemble_review(
         reference_paper_ids = cited_paper_ids
     references = build_reference_list(reference_paper_ids, citations)
 
+    # The bookend Introduction/Conclusion (see DECISIONS.md D-025/D-026) are
+    # the only two top-level sections that previously rendered as bare
+    # prose with no heading of their own — every outline section gets a
+    # "## Title" line, but these did not, which made a blank bookend
+    # invisible in the rendered paper (no missing heading to notice) and
+    # made the completeness validator unable to locate them by name at all.
+    # Giving them the same heading treatment fixes both: a real academic
+    # paper structure, and a rendered document that can be checked for
+    # completeness the same way every other section already is.
+    introduction_heading = "引言" if output_language.casefold().startswith("zh") else "Introduction"
+    conclusion_heading = "结论" if output_language.casefold().startswith("zh") else "Conclusion"
+
     rendered: list[str] = [f"# {tree[0].title}", ""]
     if introduction.content.strip():
+        rendered.extend([f"## {introduction_heading}", ""])
         rendered.extend(
             [format_citations(introduction.content, citations, citation_style), ""]
         )
@@ -168,6 +181,7 @@ def assemble_review(
                 [format_citations(content, citations, citation_style), ""]
             )
     if conclusion.content.strip():
+        rendered.extend([f"## {conclusion_heading}", ""])
         rendered.extend([format_citations(conclusion.content, citations, citation_style), ""])
 
     reference_heading = "参考文献" if output_language.casefold().startswith("zh") else "References"

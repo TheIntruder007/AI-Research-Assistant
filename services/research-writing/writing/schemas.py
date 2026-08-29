@@ -292,6 +292,11 @@ class SectionSummary(StrictModel):
     summary: str
     cited_paper_ids: list[str]
     used_point_ids: list[str]
+    # True when this section's evidence pool was too small to meaningfully
+    # develop, so a short result is expected and not a generation failure —
+    # see DECISIONS.md D-026. Distinguishes "genuinely thin evidence" from
+    # "model under-generated despite having enough to work with".
+    evidence_limited: bool = False
 
 
 class SectionWritingContext(StrictModel):
@@ -310,7 +315,13 @@ class SectionWritingContext(StrictModel):
     citations: dict[str, CitationInfo]
     sibling_titles: list[str]
     prohibited_topics: list[str]
+    # target_words: the section's planned length (a target, not a hard
+    # ceiling — see DECISIONS.md D-025/D-026). min_words/max_words bound it;
+    # all three are None when no total paper length target was requested,
+    # exactly preserving pre-D-025 behavior (no length guidance at all).
     target_words: int | None = None
+    min_words: int | None = None
+    max_words: int | None = None
     output_language: str = "en"
 
 
@@ -354,6 +365,14 @@ class SectionAudit(StrictModel):
     missing_key_points: list[str]
     duplicated_child_content: list[str]
     revision_instructions: list[str]
+    # True when this section's word count fell below its planned minimum
+    # despite substantive, genuinely-evidenced content — a length problem,
+    # tracked separately from out_of_scope_content/unsupported_claims
+    # (correctness problems) so callers can tell "under-generated" apart
+    # from "wrong". Still fails the audit (passed=False) so it drives the
+    # existing bounded revision loop with a targeted "expand" instruction,
+    # rather than a silent, permanent short section. See DECISIONS.md D-026.
+    below_minimum_length: bool = False
 
 
 class SectionAuditContent(StrictModel):
@@ -375,6 +394,15 @@ class SectionRunResult(StrictModel):
     audits: list[SectionAudit]
     resolved: bool
     unresolved_issues: list[str]
+    # True when, after every bounded revision round, the ONLY remaining
+    # audit failure is below_minimum_length (no unsupported/out-of-scope/
+    # invalid/duplicated content). This means the model genuinely ran out
+    # of supported evidence to expand with, not that it produced something
+    # wrong — see Fix 9 "Case B" (DECISIONS.md D-026). Such a section is
+    # still `resolved=True` (its shorter content is kept, never blanked),
+    # just flagged so callers/analytics can distinguish it from an
+    # under-generation failure or a real correctness failure.
+    evidence_limited: bool = False
 
 
 class ReviewDocument(StrictModel):

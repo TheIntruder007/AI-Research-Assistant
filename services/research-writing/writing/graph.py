@@ -564,6 +564,10 @@ def build_review_graph(
                 target_words=conclusion_budget.target if conclusion_budget else None,
                 min_words=conclusion_budget.minimum if conclusion_budget else None,
                 max_words=conclusion_budget.maximum if conclusion_budget else None,
+                # Only the REAL, already-generated Introduction — never the
+                # "insufficient evidence" placeholder, which has nothing to
+                # avoid repeating (see D-028 / review_writer.py docstring).
+                introduction_content=introduction.content if has_intro_evidence else None,
             )
         else:
             chinese_output = state["output_language"].casefold().startswith("zh")

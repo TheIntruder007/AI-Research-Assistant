@@ -9,6 +9,7 @@ import xml.etree.ElementTree as ET
 import httpx
 
 from ..models import Paper, normalize_doi
+from ._http_retry import get_with_retry
 
 ESEARCH_URL = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi"
 EFETCH_URL = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi"
@@ -29,7 +30,10 @@ def _text(el: ET.Element | None) -> str | None:
 
 
 async def search(http: httpx.AsyncClient, queries: dict, limit: int) -> list[Paper]:
-    resp = await http.get(ESEARCH_URL, params={
+    # Previously two sequential, non-retried GETs — a transient rate-limit/
+    # 5xx on either call permanently failed this source with no recovery at
+    # all (see DECISIONS.md D-028).
+    resp = await get_with_retry(http, ESEARCH_URL, {
         **_common_params(),
         "db": "pubmed",
         "term": queries["pubmed"],
@@ -42,7 +46,7 @@ async def search(http: httpx.AsyncClient, queries: dict, limit: int) -> list[Pap
     if not ids:
         return []
 
-    resp = await http.get(EFETCH_URL, params={
+    resp = await get_with_retry(http, EFETCH_URL, {
         **_common_params(),
         "db": "pubmed",
         "id": ",".join(ids),

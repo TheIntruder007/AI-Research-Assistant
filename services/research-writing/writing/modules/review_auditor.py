@@ -58,10 +58,24 @@ def audit_full_review(
     ]
 
     expected_headings = [(node.depth + 1, node.title) for node in tree]
+    # "Introduction"/"Conclusion" (and their Chinese equivalents) are the
+    # bookend sections (see review_writer.py) — real, rendered headings as
+    # of DECISIONS.md D-026, but NOT part of the outline's own tag tree
+    # (`tree`), so they can never appear in `expected_headings`. Excluded
+    # from this comparison the same way "References" already is: their
+    # presence/position is fixed deterministically by assemble_review()'s
+    # own rendering code (Introduction always first, Conclusion always
+    # last, References always the trailing block), not something this
+    # sequence check needs to re-verify. Before this exclusion, the
+    # comparison failed unconditionally on every run once D-026 started
+    # rendering these two real headings — see DECISIONS.md D-028.
+    _BOOKEND_AND_REFERENCE_HEADINGS = {
+        "References", "参考文献", "Introduction", "引言", "Conclusion", "结论",
+    }
     actual_headings = [
         (len(match.group("marks")), match.group("title"))
         for match in _HEADING.finditer(review.markdown)
-        if match.group("title") not in {"References", "参考文献"}
+        if match.group("title") not in _BOOKEND_AND_REFERENCE_HEADINGS
     ]
     heading_errors = (
         []

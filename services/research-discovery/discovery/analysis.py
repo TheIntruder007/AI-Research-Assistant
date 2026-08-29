@@ -376,8 +376,11 @@ Rules:
 You may also receive AUTHOR-FLAGGED FUTURE-RESEARCH CANDIDATES — open questions that individual papers' authors raised in their Discussion/Limitations/Future-research sections — each accompanied by a targeted verification search of the wider literature. A statement from a single study is a lead, not a gap: it may have been answered since, or by work the authors did not know. For each candidate, in the author_flagged_gaps field and in the same order:
 - Judge its status against BOTH the main corpus and its verification search results: "already_answered" if published work substantially answers it, "partially_addressed" if some but not all of it has been studied, "open" if it remains genuinely unaddressed.
 - Justify the verdict citing specific paper ids, and give a concrete recommendation.
+- Keep each candidate's verdict and recommendation to 1-3 sentences each — a terse, specific judgment, not a re-analysis of the candidate. You are given every candidate the extraction step found; do not expand any single one at length merely because it was included.
 - If a candidate is confirmed open and important, you may also feature it (reworked) in your main gaps list — note the connection in that gap's evidence.
-If no candidates are provided, return an empty author_flagged_gaps array."""
+If no candidates are provided, return an empty author_flagged_gaps array.
+
+Overall output budget: this report is generated with a fixed maximum output size. Every field above already tells you to prefer fewer, well-evidenced entries over padding — treat that as a hard constraint, not a suggestion: if you are covering many gaps, themes, and author-flagged candidates in one report, write EACH entry more concisely (still specific and evidence-grounded) rather than risk being cut off before finishing the report. A complete, concise report is always correct over a longer one that gets truncated."""
 
 MAX_ABSTRACT_CHARS = 1600
 

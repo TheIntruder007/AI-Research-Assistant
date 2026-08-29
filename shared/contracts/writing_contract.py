@@ -12,9 +12,24 @@ TargetFormat = Literal["IEEE", "Springer", "ACM", "APA", "Other"]
 
 # Extensible: a target format not listed here can still be passed as "Other"
 # with format_other_name set — see WritingRequest.
+#
+# Springer -> "vancouver" (numbered in-text citations, e.g. "(1)", with a
+# numbered reference list), not an author-year style. This was a real,
+# verified fix (see PAPER_OUTPUT_FINAL_DIAGNOSTIC.md finding #4 /
+# DECISIONS.md D-028): the LaTeX template actually used for "Springer"
+# (`llncs` — Springer's real, standard Lecture Notes in Computer Science
+# class; see latex_export.py) documents numbered citations as its
+# convention, but this mapping previously paired it with
+# "chicago-author-date" (parenthetical author-year), a mismatched
+# combination that was never wired to any actual Springer requirement — it
+# was simply the wrong entry from the day this table was first written.
+# "vancouver" was already implemented and declared in
+# SUPPORTED_CITATION_STYLES but had never been reachable through any real
+# target_format before this fix (zero real usage, zero test coverage) —
+# both are added here.
 _FORMAT_TO_CITATION_STYLE = {
     "IEEE": "ieee",
-    "Springer": "chicago-author-date",
+    "Springer": "vancouver",
     "ACM": "elsevier-harvard",
     "APA": "apa-7",
     "Other": "elsevier-harvard",
